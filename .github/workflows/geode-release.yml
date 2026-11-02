@@ -84,7 +84,7 @@ jobs:
           mkdir -p geode-diagnostics
           cp /tmp/geode-config-diagnostic.log /tmp/geode-build-diagnostic.log geode-diagnostics/ 2>/dev/null || true
       - name: Upload build diagnostics
-        if: steps.build.outcome == 'failure'
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: geode-diagnostics-${{ matrix.platform }}
