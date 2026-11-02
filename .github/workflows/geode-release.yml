@@ -50,7 +50,7 @@ jobs:
             -DGEODE_DONT_INSTALL_MODS=ON -DGEODE_TARGET_PLATFORM=Android64 \
             > /tmp/geode-config-diagnostic.log 2>&1 || configure_status=$?
           echo "::error::Diagnostic CMake configure exit code: $configure_status"
-          grep -niE -A4 -B3 'CMake (Error|Warning)|Unable to detect platform|error:|Error:|fatal|failed|No such file|not found|undefined|Could not|cannot' /tmp/geode-config-diagnostic.log | tail -n 60 | while IFS= read -r line; do
+          { grep -niE -A4 -B3 'CMake (Error|Warning)|Unable to detect platform|error:|Error:|fatal|failed|No such file|not found|undefined|Could not|cannot' /tmp/geode-config-diagnostic.log || true; } | tail -n 60 | while IFS= read -r line; do
             escaped=$(printf '%s' "$line" | sed 's/%/%25/g; s/\r/%0D/g')
             printf '::error::%s\n' "$escaped"
           done
