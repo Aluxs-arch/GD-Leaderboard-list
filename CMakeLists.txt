@@ -31,7 +31,7 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS src/*.cpp)
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
 setup_geode_mod(${PROJECT_NAME})
 # fmt 11's consteval format-string checks fail on Windows Clang in the Geode entry point.
-# Keep this target on C++17 and disable fmt's consteval path for its public headers.
+# Force C++17 after the SDK's target features so fmt falls back to non-consteval checks.
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
-target_compile_definitions(${PROJECT_NAME} PRIVATE FMT_USE_CONSTEVAL=0)
+target_compile_options(${PROJECT_NAME} PRIVATE "$<$<CXX_COMPILER_ID:Clang>:-std=gnu++17>")
