@@ -39,7 +39,7 @@ jobs:
         shell: bash
         run: |
           echo "GEODE_SDK=${GEODE_SDK:-<unset>}"
-          cmake --version
+          if [ -f "$GEODE_SDK/VERSION" ]; then echo "::error::Geode SDK version: $(cat "$GEODE_SDK/VERSION")"; fi
           cmake --version | sed 's/^/::error::/'
           ndk=/usr/local/lib/android/sdk/ndk/29.0.14206865
           configure_status=0
@@ -55,9 +55,9 @@ jobs:
             printf '::error::%s\n' "$escaped"
           done
           if [ -f build/CMakeCache.txt ]; then
-            grep -E '^(ANDROID|CMAKE_ANDROID_ARCH_ABI|GEODE_TARGET_PLATFORM):' build/CMakeCache.txt | while IFS= read -r line; do
+            while IFS= read -r line; do
               printf '::error::%s\n' "$line"
-            done
+            done < <(grep -E '^(ANDROID|CMAKE_ANDROID_ARCH_ABI|GEODE_TARGET_PLATFORM):' build/CMakeCache.txt || true)
           fi
           if [ -f build/build.ninja ]; then
             build_status=0
