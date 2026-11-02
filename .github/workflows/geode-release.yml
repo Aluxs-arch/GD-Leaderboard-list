@@ -22,12 +22,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: Win64
-            os: windows-latest
-          - platform: MacOS
-            os: macos-latest
-          - platform: Android32
-            os: ubuntu-latest
           - platform: Android64
             os: ubuntu-latest
     steps:
@@ -41,6 +35,7 @@ jobs:
         with:
           sdk: latest
           target: ${{ matrix.platform }}
+          build-config: RelWithDebInfo
           combine: true
           bindings-ref: 55b05c0bab332a64f2fe1527731ebb109ca45cff
       - name: Surface build diagnostics if compilation fails
@@ -123,4 +118,4 @@ jobs:
         run: |
           gh release create "$TAG_NAME" release-assets/*.geode \
             --title "Leaderboard List $TAG_NAME" \
-            --notes "First combined Geode release for Windows, macOS, Android 32-bit, and Android 64-bit. See the repository README for features and data-source notes."
+            --notes "First Geode release for Android 64-bit. See the repository README for features and data-source notes."
