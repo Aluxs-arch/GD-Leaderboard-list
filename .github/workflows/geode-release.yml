@@ -44,23 +44,13 @@ jobs:
         run: |
           echo "GEODE_SDK=${GEODE_SDK:-<unset>}"
           cmake --version
-          extra=()
-          case "${{ matrix.platform }}" in
-            Android32)
-              ndk=/usr/local/lib/android/sdk/ndk/29.0.14206865
-              extra+=("-DCMAKE_TOOLCHAIN_FILE=$ndk/build/cmake/android.toolchain.cmake" -DANDROID_STL=c++_shared -DANDROID_ABI=armeabi-v7a -DANDROID_PLATFORM=android-23)
-              ;;
-            Android64)
-              ndk=/usr/local/lib/android/sdk/ndk/29.0.14206865
-              extra+=("-DCMAKE_TOOLCHAIN_FILE=$ndk/build/cmake/android.toolchain.cmake" -DANDROID_STL=c++_shared -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-23)
-              ;;
-            MacOS)
-              extra+=(-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 -DGEODE_DISABLE_PRECOMPILED_HEADERS=OFF -DCMAKE_AR=/usr/bin/ar -DCMAKE_RANLIB=/usr/bin/ranlib)
-              ;;
-          esac
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
+          cmake --version | sed 's/^/::error::/'
+          ndk=/usr/local/lib/android/sdk/ndk/29.0.14206865
+          cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
             '-DGEODE_CODEGEN_CMAKE_ARGS=-DCMAKE_C_COMPILER=clang;-DCMAKE_CXX_COMPILER=clang++;-G Ninja' \
-            -G Ninja "${extra[@]}" -DGEODE_DONT_INSTALL_MODS=ON -DGEODE_TARGET_PLATFORM=${{ matrix.platform }} \
+            -G Ninja "-DCMAKE_TOOLCHAIN_FILE=$ndk/build/cmake/android.toolchain.cmake" \
+            -DANDROID_STL=c++_shared -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-23 \
+            -DGEODE_DONT_INSTALL_MODS=ON -DGEODE_TARGET_PLATFORM=Android64 \
             > /tmp/geode-config-diagnostic.log 2>&1 || true
           tail -n 45 /tmp/geode-config-diagnostic.log | while IFS= read -r line; do
             escaped=$(printf '%s' "$line" | sed 's/%/%25/g; s/\r/%0D/g')
