@@ -27,6 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build mod
+        id: build
         uses: geode-sdk/build-geode-mod@main
         with:
           sdk: 4.0.0
@@ -80,6 +81,16 @@ jobs:
               printf '::error::%s\n' "$escaped"
             done
           fi
+          mkdir -p geode-diagnostics
+          cp /tmp/geode-config-diagnostic.log /tmp/geode-build-diagnostic.log geode-diagnostics/ 2>/dev/null || true
+      - name: Upload build diagnostics
+        if: steps.build.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: geode-diagnostics-${{ matrix.platform }}
+          path: geode-diagnostics/
+          if-no-files-found: ignore
+          retention-days: 7
 
   package:
     name: Package .geode
