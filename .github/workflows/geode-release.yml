@@ -60,6 +60,8 @@ jobs:
             done < <(grep -E '^(ANDROID|CMAKE_ANDROID_ARCH_ABI|GEODE_TARGET_PLATFORM):' build/CMakeCache.txt || true)
           fi
           if [ -f build/build.ninja ]; then
+            grep -E '^(CMAKE_CXX_FLAGS|GEODE_DISABLE_FMT_CONSTEVAL):' build/CMakeCache.txt | sed 's/^/::error::/' || true
+            ninja -C build -t commands 2>/dev/null | grep -F 'fmt/src/os.cc' | head -n 1 | sed 's/^/::error::/' || true
             build_status=0
             cmake --build build --verbose --parallel 2 > /tmp/geode-build-diagnostic.log 2>&1 || build_status=$?
             echo "::error::Diagnostic CMake build exit code: $build_status"
