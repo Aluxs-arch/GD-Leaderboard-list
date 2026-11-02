@@ -21,9 +21,10 @@ if (DEFINED GEODE_TARGET_PLATFORM)
 endif()
 add_subdirectory(${GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 
-if (ANDROID AND TARGET fmt)
-    # Compile fmt's implementation with C++17 to avoid its Android consteval checks.
-    target_compile_options(fmt PRIVATE -std=gnu++17)
+if (TARGET fmt)
+    # Compile fmt's implementation with C++17 to avoid consteval errors in current toolchains.
+    set_property(TARGET fmt PROPERTY CXX_STANDARD 17)
+    set_property(TARGET fmt PROPERTY CXX_STANDARD_REQUIRED ON)
 endif()
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS src/*.cpp)
