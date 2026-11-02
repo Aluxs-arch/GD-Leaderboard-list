@@ -21,8 +21,8 @@ if (DEFINED GEODE_TARGET_PLATFORM)
 endif()
 add_subdirectory(${GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 
-if (GEODE_TARGET_PLATFORM MATCHES "^Android" AND TARGET fmt)
-    # Geode SDK 4's documented workaround for fmt cross-compilation.
+if (TARGET fmt)
+    # Disable fmt's consteval checks for Geode's Linux cross-compilation toolchain.
     target_compile_definitions(fmt PUBLIC FMT_CONSTEVAL=)
 endif()
 
