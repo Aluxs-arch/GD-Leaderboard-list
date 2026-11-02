@@ -118,7 +118,18 @@ protected:
         setTitle(tr("LEADERBOARD LIST", "DAFTAR LEADERBOARD"), "goldFont.fnt", 0.72f);
         auto size = m_mainLayer->getContentSize();
 
-        auto panel = CCLayerColor::create(ccc4(10, 17, 31, 238));
+        auto background = CCSprite::create("leaderboard-bg.png"_spr);
+        if (background) {
+            background->setAnchorPoint({ 0.f, 0.f });
+            background->setPosition({ 15.f, 12.f });
+            background->setScaleX(410.f / background->getContentSize().width);
+            background->setScaleY(306.f / background->getContentSize().height);
+            background->setOpacity(220);
+            background->setID("leaderboard-panel-background"_spr);
+            m_mainLayer->addChild(background, -2);
+        }
+
+        auto panel = CCLayerColor::create(ccc4(10, 17, 31, 138));
         panel->setContentSize({ 410.f, 306.f });
         panel->setPosition({ 15.f, 12.f });
         m_mainLayer->addChild(panel, -1);
@@ -547,7 +558,7 @@ class $modify(LeaderboardMenuLayer, MenuLayer) {
         auto menu = CCMenu::create();
         menu->setPosition({ winSize.width - 50.f, 100.f });
         menu->setID("aluxs-leaderboard-fab"_spr);
-        auto icon = CCSprite::create("leaderboard-logo.png"_spr);
+        auto icon = CCSprite::create("floating-icon.png"_spr);
         if (!icon) return true;
         icon->setScale(0.19f);
         auto button = CCMenuItemSpriteExtra::create(icon, this, menu_selector(LeaderboardMenuLayer::onLeaderboard));
