@@ -10,9 +10,12 @@
   "name": "Leaderboard List",
   "version": "v1.0.0",
   "developer": "Aluxs",
-  "description": "Browse Geometry Dash extreme demon leaderboards in-game. AREDL and Pointercrate data, quick level links, and one-tap ID copying. / Jelajahi leaderboard extreme demon langsung di dalam game.",
+  "description": "Browse a unified, paginated live index of AREDL, Global Demonlist Classic, and Pointercrate in-game. / Jelajahi daftar live terpadu AREDL, Global Demonlist Classic, dan Pointercrate di dalam game.",
   "repository": "https://github.com/Aluxs-arch/GD-Leaderboard-list",
   "tags": ["interface", "utility"],
+  "resources": {
+    "sprites": ["resources/*.png"]
+  },
   "early-load": true,
   "settings": {
     "language": {
