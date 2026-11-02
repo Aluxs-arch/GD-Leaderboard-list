@@ -32,6 +32,10 @@ jobs:
             os: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Use CMake 3.30 for Geode SDK compatibility
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: 3.30.9
       - name: Build mod
         uses: geode-sdk/build-geode-mod@main
         with:
@@ -39,7 +43,6 @@ jobs:
           target: ${{ matrix.platform }}
           combine: true
           bindings-ref: 55b05c0bab332a64f2fe1527731ebb109ca45cff
-          configure-args: -DCMAKE_POLICY_DEFAULT_CMP0175=OLD
       - name: Surface build diagnostics if compilation fails
         if: failure()
         shell: bash
