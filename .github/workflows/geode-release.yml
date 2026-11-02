@@ -63,7 +63,7 @@ jobs:
             build_status=0
             cmake --build build --verbose --parallel 2 > /tmp/geode-build-diagnostic.log 2>&1 || build_status=$?
             echo "::error::Diagnostic CMake build exit code: $build_status"
-            { grep -F 'src/os.cc' /tmp/geode-build-diagnostic.log || true; grep -niE -A5 -B3 'error|fatal|undefined reference|FAILED:|LNK[0-9]+' /tmp/geode-build-diagnostic.log || true; } | tail -n 80 | while IFS= read -r line; do
+            tail -n 40 /tmp/geode-build-diagnostic.log | while IFS= read -r line; do
               escaped=$(printf '%s' "$line" | sed 's/%/%25/g; s/\r/%0D/g')
               printf '::error::%s\n' "$escaped"
             done
