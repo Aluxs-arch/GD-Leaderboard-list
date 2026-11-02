@@ -19,6 +19,8 @@ endif()
 if (DEFINED GEODE_TARGET_PLATFORM)
     set(GEODE_CODEGEN_CMAKE_ARGS "${GEODE_CODEGEN_CMAKE_ARGS};-DGEODE_TARGET_PLATFORM=${GEODE_TARGET_PLATFORM}" CACHE STRING "" FORCE)
 endif()
+# Geode SDK 4 documents this workaround for fmt's Linux cross-compilation checks.
+set(GEODE_DISABLE_FMT_CONSTEVAL ON CACHE BOOL "" FORCE)
 add_subdirectory(${GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 
 if (TARGET fmt)
