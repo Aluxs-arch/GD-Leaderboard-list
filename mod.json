@@ -1,0 +1,33 @@
+{
+  "geode": "4.0.0",
+  "gd": {
+    "win": "2.2074",
+    "mac": "2.2074",
+    "ios": "2.2074",
+    "android": "2.2074"
+  },
+  "id": "aluxs.leaderboardlist",
+  "name": "Leaderboard List",
+  "version": "v1.0.0",
+  "developer": "Aluxs",
+  "description": "Browse Geometry Dash extreme demon leaderboards in-game. AREDL and Pointercrate data, quick level links, and one-tap ID copying. / Jelajahi leaderboard extreme demon langsung di dalam game.",
+  "repository": "https://github.com/Aluxs-arch/GD-Leaderboard-list",
+  "tags": ["interface", "utility"],
+  "early-load": true,
+  "settings": {
+    "language": {
+      "name": "Language / Bahasa",
+      "description": "Choose the interface language. / Pilih bahasa antarmuka.",
+      "type": "string",
+      "default": "en",
+      "one-of": ["en", "id"],
+      "one-of-labels": ["English", "Bahasa Indonesia"]
+    },
+    "show-floating-button": {
+      "name": "Floating Extreme button",
+      "description": "Show the leaderboard shortcut on the main menu. / Tampilkan pintasan leaderboard di menu utama.",
+      "type": "bool",
+      "default": true
+    }
+  }
+}
