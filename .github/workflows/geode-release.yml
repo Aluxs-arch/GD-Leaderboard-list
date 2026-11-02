@@ -32,6 +32,7 @@ jobs:
           sdk: 4.0.0
           target: ${{ matrix.platform }}
           build-config: RelWithDebInfo
+          ccache-variant: ""
           combine: true
           bindings-ref: 23c39fcda5dc660d8e92f3fb14f29b0a58a15f98
           configure-args: -DCMAKE_C_COMPILER=/usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++
