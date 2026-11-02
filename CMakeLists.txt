@@ -16,6 +16,7 @@ endif()
 if (POLICY CMP0175)
     cmake_policy(SET CMP0175 OLD)
 endif()
+set(CMAKE_POLICY_DEFAULT_CMP0175 OLD)
 
 add_subdirectory(${GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 
