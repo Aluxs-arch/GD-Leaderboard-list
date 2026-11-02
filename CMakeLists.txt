@@ -19,12 +19,12 @@ endif()
 if (DEFINED GEODE_TARGET_PLATFORM)
     set(GEODE_CODEGEN_CMAKE_ARGS "${GEODE_CODEGEN_CMAKE_ARGS};-DGEODE_TARGET_PLATFORM=${GEODE_TARGET_PLATFORM}" CACHE STRING "" FORCE)
 endif()
-if (ANDROID)
-    # Geode SDK 4 documents this for fmt's consteval checks during Linux cross-builds.
-    set(GEODE_DISABLE_FMT_CONSTEVAL ON CACHE BOOL "" FORCE)
-endif()
-
 add_subdirectory(${GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
+
+if (GEODE_TARGET_PLATFORM MATCHES "^Android" AND TARGET fmt)
+    # Geode SDK 4's documented workaround for fmt cross-compilation.
+    target_compile_definitions(fmt PUBLIC FMT_CONSTEVAL=)
+endif()
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS src/*.cpp)
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
