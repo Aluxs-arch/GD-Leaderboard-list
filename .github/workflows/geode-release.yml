@@ -33,7 +33,8 @@ jobs:
           target: ${{ matrix.platform }}
           build-config: RelWithDebInfo
           combine: true
-          bindings-ref: 55b05c0bab332a64f2fe1527731ebb109ca45cff
+          bindings-ref: 23c39fcda5dc660d8e92f3fb14f29b0a58a15f98
+          configure-args: -DCMAKE_C_COMPILER=/usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++
       - name: Surface build diagnostics if compilation fails
         if: failure()
         shell: bash
@@ -43,8 +44,10 @@ jobs:
           cmake --version | sed 's/^/::error::/'
           ndk=/usr/local/lib/android/sdk/ndk/29.0.14206865
           configure_status=0
-          cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
-            '-DGEODE_CODEGEN_CMAKE_ARGS=-DCMAKE_C_COMPILER=clang;-DCMAKE_CXX_COMPILER=clang++;-G Ninja' \
+          ndk_clang="$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
+          ndk_clangxx="$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++"
+          cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER="$ndk_clang" -DCMAKE_CXX_COMPILER="$ndk_clangxx" \
+            "-DGEODE_CODEGEN_CMAKE_ARGS=-DCMAKE_C_COMPILER=$ndk_clang;-DCMAKE_CXX_COMPILER=$ndk_clangxx;-G Ninja" \
             -G Ninja "-DCMAKE_TOOLCHAIN_FILE=$ndk/build/cmake/android.toolchain.cmake" \
             -DANDROID_STL=c++_shared -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-23 \
             -DGEODE_DONT_INSTALL_MODS=ON -DGEODE_TARGET_PLATFORM=Android64 \

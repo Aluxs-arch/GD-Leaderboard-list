@@ -19,11 +19,6 @@ endif()
 if (DEFINED GEODE_TARGET_PLATFORM)
     set(GEODE_CODEGEN_CMAKE_ARGS "${GEODE_CODEGEN_CMAKE_ARGS};-DGEODE_TARGET_PLATFORM=${GEODE_TARGET_PLATFORM}" CACHE STRING "" FORCE)
 endif()
-# Geode SDK 4's fmt 11.0.2 consteval checks fail with the Android cross-compiler.
-# C++17 selects fmt's compatible implementation and this mod does not require C++20.
-if (GEODE_TARGET_PLATFORM MATCHES "^Android")
-    set(CMAKE_CXX_STANDARD 17)
-endif()
 add_subdirectory(${GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS src/*.cpp)
