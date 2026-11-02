@@ -26,14 +26,10 @@ jobs:
             os: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Use CMake 3.30 for Geode SDK compatibility
-        uses: jwlawson/actions-setup-cmake@v2
-        with:
-          cmake-version: 3.30.9
       - name: Build mod
         uses: geode-sdk/build-geode-mod@main
         with:
-          sdk: latest
+          sdk: given
           target: ${{ matrix.platform }}
           build-config: RelWithDebInfo
           combine: true
