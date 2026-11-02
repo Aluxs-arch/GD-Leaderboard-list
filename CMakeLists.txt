@@ -13,15 +13,8 @@ endif()
 # Keep the selected platform explicit for both the SDK and its code-generation
 # sub-builds, which otherwise may not inherit the root configure arguments.
 if (NOT DEFINED GEODE_TARGET_PLATFORM OR GEODE_TARGET_PLATFORM STREQUAL "")
-    if (ANDROID AND CMAKE_ANDROID_ARCH_ABI STREQUAL "arm64-v8a")
-        set(GEODE_TARGET_PLATFORM "Android64")
-    elseif (ANDROID AND CMAKE_ANDROID_ARCH_ABI STREQUAL "armeabi-v7a")
-        set(GEODE_TARGET_PLATFORM "Android32")
-    elseif (WIN32)
-        set(GEODE_TARGET_PLATFORM "Win64")
-    elseif (APPLE)
-        set(GEODE_TARGET_PLATFORM "MacOS")
-    endif()
+    # Android64 is the workflow's portable fallback; CI may override this per target.
+    set(GEODE_TARGET_PLATFORM "Android64")
 endif()
 if (DEFINED GEODE_TARGET_PLATFORM)
     set(GEODE_CODEGEN_CMAKE_ARGS "${GEODE_CODEGEN_CMAKE_ARGS};-DGEODE_TARGET_PLATFORM=${GEODE_TARGET_PLATFORM}" CACHE STRING "" FORCE)
