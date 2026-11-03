@@ -106,9 +106,9 @@ protected:
     size_t m_completedRequests = 0;
     size_t m_failedRequests = 0;
     bool m_hasLoaded = false;
-    TaskHolder<web::WebResponse> m_aredlRequest;
-    TaskHolder<web::WebResponse> m_classicRequest;
-    TaskHolder<web::WebResponse> m_pointercrateRequest;
+    web::WebTask m_aredlRequest;
+    web::WebTask m_classicRequest;
+    web::WebTask m_pointercrateRequest;
     std::vector<LevelEntry> m_entries;
     std::unordered_map<std::string, size_t> m_entryById;
     std::vector<size_t> m_visibleEntries;
@@ -349,12 +349,13 @@ protected:
         request.userAgent("Aluxs-Leaderboard-List/1.1 (Geode mod)");
         auto url = std::string("https://pointercrate.com/api/v2/demons/listed/?limit=100");
         if (after > 0) url += "&after=" + std::to_string(after);
-        m_pointercrateRequest.spawn(request.get(url), [this, after](web::WebResponse response) {
-            if (!response.ok()) {
+        m_pointercrateRequest = request.get(url);
+        m_pointercrateRequest.listen([this, after](web::WebResponse* response) {
+            if (!response || !response->ok()) {
                 finishSource(true);
                 return;
             }
-            auto parsed = response.json();
+            auto parsed = response->json();
             if (!parsed) {
                 finishSource(true);
                 return;
@@ -375,6 +376,9 @@ protected:
     }
 
     void refreshLists() {
+        m_aredlRequest.cancel();
+        m_classicRequest.cancel();
+        m_pointercrateRequest.cancel();
         m_hasLoaded = false;
         m_completedRequests = 0;
         m_failedRequests = 0;
@@ -388,14 +392,18 @@ protected:
         auto request = web::WebRequest();
         request.timeout(std::chrono::seconds(30));
         request.userAgent("Aluxs-Leaderboard-List/1.1 (Geode mod)");
-        m_aredlRequest.spawn(request.get("https://api.aredl.net/api/aredl/levels"), [this](web::WebResponse response) {
-            onSourceFinished(Source::Aredl, std::move(response));
+        m_aredlRequest = request.get("https://api.aredl.net/api/aredl/levels");
+        m_aredlRequest.listen([this](web::WebResponse* response) {
+            if (response) onSourceFinished(Source::Aredl, *response);
+            else finishSource(true);
         });
         auto classicRequest = web::WebRequest();
         classicRequest.timeout(std::chrono::seconds(30));
         classicRequest.userAgent("Aluxs-Leaderboard-List/1.1 (Geode mod)");
-        m_classicRequest.spawn(classicRequest.get("https://api.demonlist.org/level/classic/list"), [this](web::WebResponse response) {
-            onSourceFinished(Source::Classic, std::move(response));
+        m_classicRequest = classicRequest.get("https://api.demonlist.org/level/classic/list");
+        m_classicRequest.listen([this](web::WebResponse* response) {
+            if (response) onSourceFinished(Source::Classic, *response);
+            else finishSource(true);
         });
         fetchPointercratePage(0);
     }
