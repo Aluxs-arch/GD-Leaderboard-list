@@ -11,6 +11,7 @@
 #include <cctype>
 #include <limits>
 #include <cmath>
+#include <functional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -524,14 +525,29 @@ protected:
                 holder->setContentSize({ 44.f, 26.f });
                 holder->setPosition({ 31.f, 1.5f });
                 row->addChild(holder);
-                auto tile = CCLayerColor::create(ccc4(40, 65, 79, 255));
+                // A small editorial cover, keyed to the GD ID. It is deliberately
+                // illustrative rather than pretending to be a gameplay screenshot.
+                auto palette = std::hash<std::string>{}(entry.id) % 3;
+                auto color = palette == 0 ? ccc4(56, 65, 79, 255)
+                    : palette == 1 ? ccc4(47, 71, 76, 255) : ccc4(69, 53, 67, 255);
+                auto tile = CCLayerColor::create(color);
                 tile->setContentSize({ 44.f, 26.f });
                 holder->addChild(tile);
+                auto mark = CCLayerColor::create(ccc4(221, 170, 102, 255));
+                mark->setContentSize({ 2.f, 26.f });
+                tile->addChild(mark);
                 auto symbol = CCSprite::create("extreme-demon.png"_spr);
                 if (symbol) {
-                    symbol->setScale(22.f / symbol->getContentSize().width);
-                    symbol->setPosition({ 22.f, 13.f });
+                    symbol->setScale(20.f / symbol->getContentSize().width);
+                    symbol->setPosition({ 16.f, 13.f });
                     holder->addChild(symbol);
+                }
+                if (!entry.name.empty() && std::isalnum(static_cast<unsigned char>(entry.name[0])) &&
+                    static_cast<unsigned char>(entry.name[0]) < 128) {
+                    auto initial = CCLabelBMFont::create(entry.name.substr(0, 1).c_str(), "goldFont.fnt");
+                    initial->setScale(.32f);
+                    initial->setPosition({ 35.f, 12.f });
+                    holder->addChild(initial);
                 }
                 if (Mod::get()->getSettingValue<bool>("video-previews") && !entry.videoId.empty())
                     loadPreview(holder, entry.videoId);
