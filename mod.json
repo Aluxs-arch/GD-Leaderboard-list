@@ -8,7 +8,7 @@
   },
   "id": "aluxs.leaderboardlist",
   "name": "Leaderboard List",
-  "version": "v1.0.2",
+  "version": "v2.0.0",
   "developer": "Aluxs",
   "description": "Browse a unified, paginated live index of AREDL, Global Demonlist Classic, and Pointercrate in-game. / Jelajahi daftar live terpadu AREDL, Global Demonlist Classic, dan Pointercrate di dalam game.",
   "repository": "https://github.com/Aluxs-arch/GD-Leaderboard-list",
@@ -36,15 +36,30 @@
       "name": "Floating button size / Ukuran tombol",
       "description": "Choose the shortcut size, then drag it anywhere on the main menu. / Pilih ukuran lalu geser tombol ke posisi yang diinginkan.",
       "type": "string",
-      "default": "large",
-      "one-of": ["small", "medium", "large", "extra-large"],
-      "one-of-labels": ["Small / Kecil", "Medium / Sedang", "Large / Besar", "Extra large / Sangat besar"]
+      "default": "small",
+      "one-of": ["very-small", "small", "medium", "large"],
+      "one-of-labels": ["Very small / Sangat kecil", "Small / Kecil", "Medium / Sedang", "Large / Besar"]
     },
     "show-floating-label": {
       "name": "Floating button caption / Label tombol",
       "description": "Show the EXTREME caption below the shortcut. / Tampilkan tulisan EXTREME di bawah tombol.",
       "type": "bool",
-      "default": true
+      "default": false
+    },
+    "show-thumbnails": {
+      "name": "Level thumbnails / Thumbnail level",
+      "description": "Show a small art tile for each level. / Tampilkan gambar kecil tiap level.",
+      "type": "bool", "default": true
+    },
+    "video-previews": {
+      "name": "Video thumbnails / Thumbnail video",
+      "description": "Fetch video covers only when list data provides a valid YouTube link (extra network use). / Unduh sampul video jika tersedia (memakai data tambahan).",
+      "type": "bool", "default": true
+    },
+    "reduce-motion": {
+      "name": "Reduce motion / Kurangi animasi",
+      "description": "Disable the emblem glow and floating-button pulse. / Matikan cahaya logo dan animasi tombol.",
+      "type": "bool", "default": false
     }
   }
 }

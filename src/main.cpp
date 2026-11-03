@@ -7,6 +7,9 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <charconv>
+#include <cctype>
+#include <limits>
 #include <cmath>
 #include <string>
 #include <unordered_map>
@@ -20,7 +23,7 @@ namespace {
     constexpr unsigned AREDL_BIT = 1u << 0;
     constexpr unsigned CLASSIC_BIT = 1u << 1;
     constexpr unsigned POINTERCRATE_BIT = 1u << 2;
-    constexpr size_t LEVELS_PER_PAGE = 8;
+    constexpr size_t LEVELS_PER_PAGE = 6;
 
     struct LevelEntry {
         std::string name;
@@ -29,6 +32,7 @@ namespace {
         int classicRank = 0;
         int pointercrateRank = 0;
         unsigned sources = 0;
+        std::string videoId;
     };
 
     bool isIndonesian() {
@@ -81,21 +85,37 @@ namespace {
         }
     }
 
-    std::string urlFor(Source source, std::string const& id, int rank) {
-        switch (source) {
-            case Source::Aredl: return "https://aredl.net/list/" + id;
-            case Source::Classic: return "https://demonlist.org/classic/" + std::to_string(rank);
-            case Source::Pointercrate: return "https://pointercrate.com/demonlist/" + std::to_string(rank);
-            default: return "https://aredl.net/list/" + id;
+    // Only accept YouTube IDs. Never request an arbitrary URL supplied by a list.
+    std::string youtubeId(std::string const& url) {
+        for (auto marker : { "youtu.be/", "watch?v=", "&v=", "/embed/", "/shorts/" }) {
+            auto pos = url.find(marker);
+            if (pos == std::string::npos) continue;
+            auto id = url.substr(pos + std::char_traits<char>::length(marker), 11);
+            if (id.size() == 11 && std::all_of(id.begin(), id.end(), [](unsigned char c) {
+                return std::isalnum(c) || c == '-' || c == '_';
+            })) return id;
         }
+        return "";
     }
 
-    void openURL(std::string const& url) {
-        if (!url.empty()) utils::web::openLinkInBrowser(url);
+    // Native, unfussy controls instead of mixing four stock GD button skins.
+    CCNode* actionSurface(char const* label, float width, float height, bool primary = false) {
+        auto surface = CCLayerColor::create(primary ? ccc4(173, 121, 70, 255) : ccc4(36, 54, 72, 255));
+        surface->setContentSize({ width, height });
+        auto line = CCLayerColor::create(primary ? ccc4(239, 195, 129, 255) : ccc4(92, 127, 142, 255));
+        line->setContentSize({ width, 1.f });
+        line->setPosition({ 0.f, height - 1.f });
+        surface->addChild(line);
+        auto text = CCLabelBMFont::create(label, "goldFont.fnt");
+        text->setScale(primary ? .40f : .38f);
+        text->setPosition({ width / 2.f, height / 2.f });
+        surface->addChild(text);
+        return surface;
     }
+
 }
 
-class LeaderboardPopup : public geode::Popup {
+class LeaderboardPopup : public geode::Popup, public LevelManagerDelegate {
 protected:
     Source m_filter = Source::All;
     CCLabelBMFont* m_status = nullptr;
@@ -104,6 +124,7 @@ protected:
     CCMenu* m_pageMenu = nullptr;
     CCMenu* m_filterMenu = nullptr;
     std::array<CCMenuItemSpriteExtra*, 4> m_filterButtons{};
+    std::array<CCLayerColor*, 4> m_filterAccents{};
     size_t m_page = 0;
     size_t m_completedRequests = 0;
     size_t m_failedRequests = 0;
@@ -114,60 +135,61 @@ protected:
     std::vector<LevelEntry> m_entries;
     std::unordered_map<std::string, size_t> m_entryById;
     std::vector<size_t> m_visibleEntries;
+    std::vector<async::TaskHolder<web::WebResponse>> m_previewTasks;
+    std::unordered_map<std::string, Ref<CCTexture2D>> m_previewCache;
+    int m_openLevelId = 0;
+    std::string m_openSearchKey;
 
     bool setup() {
         setTitle(tr("LEADERBOARD LIST", "DAFTAR LEADERBOARD"), "goldFont.fnt", 0.72f);
         auto size = m_mainLayer->getContentSize();
 
-        // An opaque canvas masks the game's default brown popup skin. Keep the
-        // artwork subtle so labels stay readable over bright game backgrounds.
-        auto canvas = CCLayerColor::create(ccc4(12, 21, 37, 255));
-        canvas->setContentSize(size);
-        m_mainLayer->addChild(canvas, -3);
-
-        auto background = CCSprite::create("leaderboard-bg.png"_spr);
-        if (background) {
-            background->setAnchorPoint({ 0.f, 0.f });
-            background->setPosition({ 15.f, 12.f });
-            background->setScaleX(410.f / background->getContentSize().width);
-            background->setScaleY(306.f / background->getContentSize().height);
-            background->setOpacity(72);
-            background->setID("leaderboard-panel-background"_spr);
-            m_mainLayer->addChild(background, -2);
+        // The bundled cover is the full surface, not a translucent overlay on
+        // Geode's brown default skin. All content sits inside its inset border.
+        auto cover = CCSprite::create("leaderboard-bg.png"_spr);
+        if (cover) {
+            cover->setAnchorPoint({ 0.f, 0.f });
+            cover->setPosition({ 0.f, 0.f });
+            cover->setScaleX(size.width / cover->getContentSize().width);
+            cover->setScaleY(size.height / cover->getContentSize().height);
+            cover->setID("leaderboard-cover"_spr);
+            m_mainLayer->addChild(cover, -2);
         }
 
-        auto panel = CCLayerColor::create(ccc4(10, 17, 31, 80));
-        panel->setContentSize({ 410.f, 306.f });
-        panel->setPosition({ 15.f, 12.f });
-        m_mainLayer->addChild(panel, -1);
-
-        auto accent = CCLayerColor::create(ccc4(224, 178, 91, 255));
-        accent->setContentSize({ 342.f, 1.f });
-        accent->setPosition({ 73.f, size.height - 73.f });
-        m_mainLayer->addChild(accent);
-
-        auto logo = CCSprite::create("leaderboard-logo.png"_spr);
+        auto logo = CCSprite::create("extreme-demon.png"_spr);
         if (logo) {
-            logo->setScale(42.f / logo->getContentSize().width);
-            logo->setPosition({ 43.f, size.height - 49.f });
+            logo->setScale(52.f / logo->getContentSize().width);
+            logo->setPosition({ 48.f, size.height - 50.f });
             logo->setID("leaderboard-brand-mark"_spr);
             m_mainLayer->addChild(logo);
+            if (!Mod::get()->getSettingValue<bool>("reduce-motion")) {
+                auto aura = CCSprite::create("extreme-demon.png"_spr);
+                if (aura) {
+                    aura->setScale(65.f / aura->getContentSize().width);
+                    aura->setPosition(logo->getPosition());
+                    aura->setOpacity(48);
+                    m_mainLayer->addChild(aura, -1);
+                    aura->runAction(CCRepeatForever::create(CCSequence::create(
+                        CCFadeTo::create(1.8f, 95), CCFadeTo::create(1.8f, 32), nullptr
+                    )));
+                }
+            }
         }
 
-        auto brand = CCLabelBMFont::create("ALUXS  /  EXTREME DEMON HUB", "goldFont.fnt");
+        auto brand = CCLabelBMFont::create("EXTREME  /  ALUXS", "goldFont.fnt");
         brand->setScale(0.42f);
         brand->setAnchorPoint({ 0.f, 0.5f });
-        brand->setPosition({ 73.f, size.height - 39.f });
+        brand->setPosition({ 82.f, size.height - 41.f });
         m_mainLayer->addChild(brand);
 
         auto subtitle = CCLabelBMFont::create(
-            tr("One live index · three communities · one tap IDs", "Satu indeks live · tiga komunitas · salin ID sekali tap").c_str(),
+            tr("Three lists. One direct path to the level.", "Tiga list. Satu jalan langsung ke level.").c_str(),
             "chatFont.fnt"
         );
         subtitle->setScale(0.50f);
         subtitle->setAnchorPoint({ 0.f, 0.5f });
         subtitle->setColor({ 160, 181, 207 });
-        subtitle->setPosition({ 73.f, size.height - 59.f });
+        subtitle->setPosition({ 82.f, size.height - 61.f });
         m_mainLayer->addChild(subtitle);
 
         m_filterMenu = CCMenu::create();
@@ -187,9 +209,9 @@ protected:
         m_mainLayer->addChild(m_status);
 
         auto refreshMenu = CCMenu::create();
-        refreshMenu->setPosition({ size.width - 53.f, size.height - 118.f });
+        refreshMenu->setPosition({ size.width - 56.f, size.height - 118.f });
         refreshMenu->addChild(CCMenuItemSpriteExtra::create(
-            ButtonSprite::create(tr("REFRESH", "MUAT ULANG").c_str(), 76, true, "goldFont.fnt", "GJ_button_01.png", 26.f, 0.60f),
+            actionSurface(tr("REFRESH", "ULANG").c_str(), 58.f, 22.f, true),
             this, menu_selector(LeaderboardPopup::onRefresh)
         ));
         m_mainLayer->addChild(refreshMenu);
@@ -201,11 +223,11 @@ protected:
         m_pageMenu->setPosition({ size.width / 2.f, 31.f });
         m_pageMenu->setVisible(false);
         m_pageMenu->addChild(CCMenuItemSpriteExtra::create(
-            ButtonSprite::create("<", 34, true, "goldFont.fnt", "GJ_button_05.png", 24.f, 0.58f),
+            actionSurface("<", 33.f, 21.f),
             this, menu_selector(LeaderboardPopup::onPreviousPage)
         ));
         auto next = CCMenuItemSpriteExtra::create(
-            ButtonSprite::create(">", 34, true, "goldFont.fnt", "GJ_button_05.png", 24.f, 0.58f),
+            actionSurface(">", 33.f, 21.f),
             this, menu_selector(LeaderboardPopup::onNextPage)
         );
         next->setPosition({ 86.f, 0.f });
@@ -230,19 +252,24 @@ protected:
 
     void addFilterButton(char const* label, Source source, float x) {
         auto button = CCMenuItemSpriteExtra::create(
-            ButtonSprite::create(label, 78, true, "goldFont.fnt", "GJ_button_05.png", 28.f, 0.60f),
+            actionSurface(label, 78.f, 27.f),
             this, menu_selector(LeaderboardPopup::onChooseFilter)
         );
         button->setTag(static_cast<int>(source));
         button->setPosition({ x, 0.f });
         m_filterButtons[static_cast<size_t>(source)] = button;
+        auto accent = CCLayerColor::create(ccc4(230, 170, 95, 255));
+        accent->setContentSize({ 78.f, 2.f });
+        accent->setPosition({ 0.f, 0.f });
+        button->addChild(accent, 1);
+        m_filterAccents[static_cast<size_t>(source)] = accent;
         m_filterMenu->addChild(button);
         updateFilterStyle();
     }
 
     void updateFilterStyle() {
         for (size_t i = 0; i < m_filterButtons.size(); ++i) {
-            if (m_filterButtons[i]) m_filterButtons[i]->setOpacity(i == static_cast<size_t>(m_filter) ? 255 : 175);
+            if (m_filterAccents[i]) m_filterAccents[i]->setVisible(i == static_cast<size_t>(m_filter));
         }
     }
 
@@ -251,6 +278,7 @@ protected:
     }
 
     void clearRows() {
+        m_previewTasks.clear();
         if (m_rows) m_rows->removeAllChildrenWithCleanup(true);
     }
 
@@ -317,6 +345,11 @@ protected:
 
             auto& entry = m_entries[index];
             entry.sources |= bit;
+            if (entry.videoId.empty()) {
+                auto video = jsonText(item, "video");
+                if (video.empty()) video = jsonText(item["video"], "url");
+                entry.videoId = youtubeId(video);
+            }
             int rank = source == Source::Classic ? jsonInt(item, "placement")
                 : jsonInt(item, "position");
             if (!rank) rank = jsonInt(item, "rank");
@@ -394,6 +427,7 @@ protected:
         m_completedRequests = 0;
         m_failedRequests = 0;
         m_entries.clear();
+        m_previewCache.clear();
         m_entryById.clear();
         m_visibleEntries.clear();
         m_page = 0;
@@ -415,73 +449,126 @@ protected:
         fetchPointercratePage(0);
     }
 
+    void attachPreview(CCNode* holder, CCTexture2D* texture) {
+        if (!holder || !holder->getParent() || !texture) return;
+        holder->removeAllChildrenWithCleanup(true);
+        auto sprite = CCSprite::createWithTexture(texture);
+        if (!sprite) return;
+        // Match the thumbnail window without distorting the source aspect ratio.
+        auto imageSize = sprite->getContentSize();
+        if (imageSize.width <= 0 || imageSize.height <= 0) return;
+        sprite->setScale(std::min(43.f / imageSize.width, 25.f / imageSize.height));
+        sprite->setPosition({ 22.f, 13.f });
+        holder->addChild(sprite);
+    }
+
+    void loadPreview(CCNode* holder, std::string const& videoId) {
+        auto cached = m_previewCache.find(videoId);
+        if (cached != m_previewCache.end()) {
+            attachPreview(holder, cached->second.data());
+            return;
+        }
+        // Only visible rows request images. TaskHolder cancels old-page work;
+        // the retained holder cannot outlive its row after the callback.
+        m_previewTasks.emplace_back();
+        m_previewTasks.back().spawn(
+            web::WebRequest().timeout(std::chrono::seconds(8)).get(
+                "https://i.ytimg.com/vi/" + videoId + "/mqdefault.jpg"),
+            [this, holder = Ref<CCNode>(holder), videoId](web::WebResponse response) {
+                if (!response.ok() || !holder->getParent() || response.data().size() > 512 * 1024 || response.data().empty()) return;
+                auto bytes = response.data();
+                auto image = new CCImage();
+                bool decoded = image->initWithImageData(bytes.data(), static_cast<int>(bytes.size()), CCImage::kFmtJpg);
+                if (!decoded || image->getWidth() > 1024 || image->getHeight() > 1024) {
+                    image->release();
+                    return;
+                }
+                auto texture = new CCTexture2D();
+                bool uploaded = texture->initWithImage(image);
+                image->release();
+                if (!uploaded) { texture->release(); return; }
+                texture->autorelease();
+                if (m_previewCache.size() >= 32) m_previewCache.clear();
+                m_previewCache.emplace(videoId, texture);
+                attachPreview(holder.data(), texture);
+            }
+        );
+    }
+
     void renderPage() {
         clearRows();
         auto begin = m_page * LEVELS_PER_PAGE;
         auto end = std::min(begin + LEVELS_PER_PAGE, m_visibleEntries.size());
-        constexpr float rowTop = 221.f;
-        constexpr float rowStep = 22.f;
+        constexpr float rowTop = 213.f;
+        constexpr float rowStep = 31.f;
         for (size_t slot = 0; begin + slot < end; ++slot) {
             auto const& entry = m_entries[m_visibleEntries[begin + slot]];
-            auto row = CCLayerColor::create(slot % 2 ? ccc4(23, 34, 52, 240) : ccc4(29, 42, 62, 240));
-            row->setContentSize({ 390.f, 21.f });
+            auto row = CCLayerColor::create(slot % 2 ? ccc4(22, 37, 55, 250) : ccc4(28, 44, 63, 250));
+            row->setContentSize({ 390.f, 29.f });
             row->setPosition({ 25.f, rowTop - static_cast<float>(slot) * rowStep });
             row->setID("leaderboard-level-row"_spr);
             m_rows->addChild(row);
+            auto rail = CCLayerColor::create(ccc4(181, 127, 78, 255));
+            rail->setContentSize({ 2.f, 29.f });
+            row->addChild(rail);
 
             auto rankNumber = rankFor(entry, m_filter);
             auto rank = CCLabelBMFont::create(rankNumber ? fmt::format("#{}", rankNumber).c_str() : "-", "goldFont.fnt");
-            rank->setScale(0.32f);
-            rank->setAnchorPoint({ 0.f, 0.5f });
-            rank->setPosition({ 6.f, 10.5f });
+            rank->setScale(.30f);
+            rank->setAnchorPoint({ 0.f, .5f });
+            rank->setPosition({ 5.f, 14.5f });
             row->addChild(rank);
 
-            auto name = CCLabelBMFont::create(entry.name.c_str(), "chatFont.fnt");
-            name->setScale(0.45f);
-            name->setAnchorPoint({ 0.f, 0.5f });
-            name->setPosition({ 43.f, 10.5f });
-            name->setWidth(174.f);
+            if (Mod::get()->getSettingValue<bool>("show-thumbnails")) {
+                auto holder = CCNode::create();
+                holder->setContentSize({ 44.f, 26.f });
+                holder->setPosition({ 31.f, 1.5f });
+                row->addChild(holder);
+                auto tile = CCLayerColor::create(ccc4(40, 65, 79, 255));
+                tile->setContentSize({ 44.f, 26.f });
+                holder->addChild(tile);
+                auto symbol = CCSprite::create("extreme-demon.png"_spr);
+                if (symbol) {
+                    symbol->setScale(22.f / symbol->getContentSize().width);
+                    symbol->setPosition({ 22.f, 13.f });
+                    holder->addChild(symbol);
+                }
+                if (Mod::get()->getSettingValue<bool>("video-previews") && !entry.videoId.empty())
+                    loadPreview(holder, entry.videoId);
+            }
+
+            auto name = CCLabelBMFont::create(entry.name.empty() ? "Unknown" : entry.name.c_str(), "chatFont.fnt");
+            name->setScale(.43f);
+            name->setAnchorPoint({ 0.f, .5f });
+            name->setPosition({ 80.f, 14.5f });
+            name->setWidth(128.f);
             row->addChild(name);
 
             auto badge = CCLabelBMFont::create(sourceMarks(entry).c_str(), "chatFont.fnt");
-            badge->setScale(0.36f);
-            badge->setColor({ 128, 193, 213 });
-            badge->setAnchorPoint({ 0.f, 0.5f });
-            badge->setPosition({ 224.f, 10.5f });
+            badge->setScale(.34f);
+            badge->setColor({ 132, 198, 210 });
+            badge->setAnchorPoint({ 0.f, .5f });
+            badge->setPosition({ 217.f, 14.5f });
             row->addChild(badge);
 
             auto menu = CCMenu::create();
             menu->setPosition({ 0.f, 0.f });
             row->addChild(menu);
-            auto info = CCMenuItemSpriteExtra::create(
-                ButtonSprite::create("INFO", 36, true, "goldFont.fnt", "GJ_button_05.png", 21.f, 0.48f),
-                this, menu_selector(LeaderboardPopup::onShowDetails)
-            );
+            auto info = CCMenuItemSpriteExtra::create(actionSurface("INFO", 43.f, 23.f), this, menu_selector(LeaderboardPopup::onShowDetails));
             info->setTag(static_cast<int>(m_visibleEntries[begin + slot]));
-            info->setPosition({ 276.f, 10.5f });
+            info->setPosition({ 274.f, 14.5f });
             menu->addChild(info);
-
-            auto copy = CCMenuItemSpriteExtra::create(
-                ButtonSprite::create("ID", 34, true, "goldFont.fnt", "GJ_button_05.png", 21.f, 0.50f),
-                this, menu_selector(LeaderboardPopup::onCopyID)
-            );
+            auto copy = CCMenuItemSpriteExtra::create(actionSurface("ID", 34.f, 23.f), this, menu_selector(LeaderboardPopup::onCopyID));
             copy->setTag(static_cast<int>(m_visibleEntries[begin + slot]));
-            copy->setPosition({ 325.f, 10.5f });
+            copy->setPosition({ 318.f, 14.5f });
             menu->addChild(copy);
-
-            auto open = CCMenuItemSpriteExtra::create(
-                ButtonSprite::create("OPEN", 49, true, "goldFont.fnt", "GJ_button_01.png", 21.f, 0.50f),
-                this, menu_selector(LeaderboardPopup::onOpenEntry)
-            );
+            auto open = CCMenuItemSpriteExtra::create(actionSurface("OPEN", 49.f, 23.f, true), this, menu_selector(LeaderboardPopup::onOpenEntry));
             open->setTag(static_cast<int>(m_visibleEntries[begin + slot]));
-            open->setPosition({ 371.f, 10.5f });
+            open->setPosition({ 363.f, 14.5f });
             menu->addChild(open);
         }
-
         auto pages = (m_visibleEntries.size() + LEVELS_PER_PAGE - 1) / LEVELS_PER_PAGE;
-        if (m_pageLabel) {
-            m_pageLabel->setString(pages ? fmt::format("{} / {}", m_page + 1, pages).c_str() : "0 / 0");
-        }
+        if (m_pageLabel) m_pageLabel->setString(pages ? fmt::format("{} / {}", m_page + 1, pages).c_str() : "0 / 0");
         if (m_pageMenu) m_pageMenu->setVisible(pages > 1);
     }
 
@@ -551,20 +638,83 @@ public:
                          : tr("Clipboard copy failed.", "Gagal menyalin ke clipboard."));
     }
 
+    ~LeaderboardPopup() override {
+        auto manager = GameLevelManager::sharedState();
+        if (manager->m_levelManagerDelegate == this) manager->m_levelManagerDelegate = nullptr;
+    }
+
+    void finishOpenRequest(char const* message) {
+        if (GameLevelManager::sharedState()->m_levelManagerDelegate == this)
+            GameLevelManager::sharedState()->m_levelManagerDelegate = nullptr;
+        m_openSearchKey.clear();
+        m_openLevelId = 0;
+        if (message) setStatus(message);
+    }
+
+    void showNativeLevel(GJGameLevel* level) {
+        finishOpenRequest(nullptr);
+        auto scene = LevelInfoLayer::scene(level, false);
+        if (scene) CCDirector::sharedDirector()->pushScene(CCTransitionFade::create(.25f, scene));
+        else setStatus(tr("Could not open this level.", "Tidak dapat membuka level ini."));
+    }
+
+    void loadLevelsFinished(CCArray* levels, char const* key) override {
+        if (!key || m_openSearchKey != key) return;
+        if (levels) {
+            CCObject* object = nullptr;
+            CCARRAY_FOREACH(levels, object) {
+                auto level = static_cast<GJGameLevel*>(object);
+                if (level && level->m_levelID.value() == m_openLevelId) {
+                    showNativeLevel(level);
+                    return;
+                }
+            }
+        }
+        finishOpenRequest(tr("Level not found on GD servers. Try again later.",
+            "Level tidak ditemukan di server GD. Coba lagi nanti.").c_str());
+    }
+
+    void loadLevelsFailed(char const* key) override {
+        if (key && m_openSearchKey == key)
+            finishOpenRequest(tr("GD server unavailable. Try again later.",
+                "Server GD tidak tersedia. Coba lagi nanti.").c_str());
+    }
+
+    void loadLevelsFinished(CCArray* levels, char const* key, int) override {
+        loadLevelsFinished(levels, key);
+    }
+
+    void loadLevelsFailed(char const* key, int) override {
+        loadLevelsFailed(key);
+    }
+
     void onOpenEntry(CCObject* sender) {
         auto index = static_cast<size_t>(sender->getTag());
         if (index >= m_entries.size()) return;
         auto const& entry = m_entries[index];
-        int rank = rankFor(entry, m_filter);
-        Source pageSource = m_filter;
-        if (pageSource == Source::All) {
-            pageSource = entry.classicRank ? Source::Classic : entry.aredlRank ? Source::Aredl : Source::Pointercrate;
-            rank = rankFor(entry, pageSource);
+        int id = 0;
+        auto [end, error] = std::from_chars(entry.id.data(), entry.id.data() + entry.id.size(), id);
+        if (error != std::errc{} || end != entry.id.data() + entry.id.size() || id <= 0) {
+            setStatus(tr("Invalid in-game level ID.", "ID level dalam game tidak valid."));
+            return;
         }
-        if (!rank && entry.classicRank) { pageSource = Source::Classic; rank = entry.classicRank; }
-        if (!rank && entry.aredlRank) { pageSource = Source::Aredl; rank = entry.aredlRank; }
-        if (!rank && entry.pointercrateRank) { pageSource = Source::Pointercrate; rank = entry.pointercrateRank; }
-        openURL(urlFor(pageSource, entry.id, rank));
+        auto manager = GameLevelManager::sharedState();
+        if (auto saved = manager->getSavedLevel(id)) {
+            showNativeLevel(saved);
+            return;
+        }
+        if (manager->m_levelManagerDelegate && manager->m_levelManagerDelegate != this) {
+            setStatus(tr("GD is busy loading another list. Try again.",
+                "GD sedang memuat daftar lain. Coba lagi."));
+            return;
+        }
+        auto search = GJSearchObject::create(SearchType::Search, entry.id);
+        if (!search) return;
+        m_openLevelId = id;
+        m_openSearchKey = search->getKey();
+        manager->m_levelManagerDelegate = this;
+        setStatus(tr("Opening level in Geometry Dash...", "Membuka level di Geometry Dash..."));
+        manager->getOnlineLevels(search);
     }
 
 };
@@ -649,8 +799,8 @@ class $modify(LeaderboardMenuLayer, MenuLayer) {
         auto icon = CCSprite::create("floating-icon.png"_spr);
         if (!icon) return true;
         auto preference = Mod::get()->getSettingValue<std::string>("floating-size");
-        float diameter = preference == "small" ? 46.f : preference == "medium" ? 62.f
-            : preference == "extra-large" ? 98.f : 80.f;
+        float diameter = preference == "very-small" ? 24.f : preference == "medium" ? 44.f
+            : preference == "large" ? 58.f : 32.f;
         icon->setScale(diameter / icon->getContentSize().width);
         bool showLabel = Mod::get()->getSettingValue<bool>("show-floating-label");
         auto menu = DraggableFabMenu::create(diameter / 2.f + (showLabel ? 20.f : 9.f));
@@ -664,11 +814,12 @@ class $modify(LeaderboardMenuLayer, MenuLayer) {
             label->setPosition({ 0.f, -diameter / 2.f - 9.f });
             menu->addChild(label);
         }
-        button->runAction(CCRepeatForever::create(CCSequence::create(
-            CCScaleTo::create(1.4f, 1.035f),
-            CCScaleTo::create(1.4f, 1.0f),
-            nullptr
-        )));
+        if (!Mod::get()->getSettingValue<bool>("reduce-motion")) {
+            button->runAction(CCRepeatForever::create(CCSequence::create(
+                CCScaleTo::create(1.6f, 1.035f),
+                CCScaleTo::create(1.6f, 1.0f), nullptr
+            )));
+        }
         addChild(menu, 100);
         menu->restorePosition();
         return true;
