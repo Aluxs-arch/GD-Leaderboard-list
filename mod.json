@@ -1,14 +1,14 @@
 {
-  "geode": "4.9.0",
+  "geode": "5.11.2",
   "gd": {
-    "win": "2.2074",
-    "mac": "2.2074",
-    "ios": "2.2074",
-    "android": "2.2074"
+    "win": "2.2081",
+    "mac": "2.2081",
+    "ios": "2.2081",
+    "android": "2.2081"
   },
   "id": "aluxs.leaderboardlist",
   "name": "Leaderboard List",
-  "version": "v1.0.0",
+  "version": "v1.0.1",
   "developer": "Aluxs",
   "description": "Browse a unified, paginated live index of AREDL, Global Demonlist Classic, and Pointercrate in-game. / Jelajahi daftar live terpadu AREDL, Global Demonlist Classic, dan Pointercrate di dalam game.",
   "repository": "https://github.com/Aluxs-arch/GD-Leaderboard-list",

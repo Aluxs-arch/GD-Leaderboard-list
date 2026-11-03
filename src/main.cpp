@@ -1,4 +1,5 @@
 #include <Geode/Geode.hpp>
+#include <Geode/ui/Popup.hpp>
 #include <Geode/modify/MenuLayer.hpp>
 #include <Geode/utils/web.hpp>
 #include <Geode/utils/general.hpp>
@@ -18,7 +19,7 @@ namespace {
     constexpr unsigned AREDL_BIT = 1u << 0;
     constexpr unsigned CLASSIC_BIT = 1u << 1;
     constexpr unsigned POINTERCRATE_BIT = 1u << 2;
-    constexpr size_t PAGE_SIZE = 10;
+    constexpr size_t LEVELS_PER_PAGE = 10;
 
     struct LevelEntry {
         std::string name;
@@ -93,7 +94,7 @@ namespace {
     }
 }
 
-class LeaderboardPopup : public geode::Popup<> {
+class LeaderboardPopup : public geode::Popup {
 protected:
     Source m_filter = Source::All;
     CCLabelBMFont* m_status = nullptr;
@@ -106,14 +107,14 @@ protected:
     size_t m_completedRequests = 0;
     size_t m_failedRequests = 0;
     bool m_hasLoaded = false;
-    web::WebTask m_aredlRequest;
-    web::WebTask m_classicRequest;
-    web::WebTask m_pointercrateRequest;
+    async::TaskHolder<web::WebResponse> m_aredlRequest;
+    async::TaskHolder<web::WebResponse> m_classicRequest;
+    async::TaskHolder<web::WebResponse> m_pointercrateRequest;
     std::vector<LevelEntry> m_entries;
     std::unordered_map<std::string, size_t> m_entryById;
     std::vector<size_t> m_visibleEntries;
 
-    bool setup() override {
+    bool setup() {
         setTitle(tr("LEADERBOARD LIST", "DAFTAR LEADERBOARD"), "goldFont.fnt", 0.72f);
         auto size = m_mainLayer->getContentSize();
 
@@ -274,7 +275,7 @@ protected:
             if (rankB == 0) return true;
             return rankA < rankB;
         });
-        auto pages = (m_visibleEntries.size() + PAGE_SIZE - 1) / PAGE_SIZE;
+        auto pages = (m_visibleEntries.size() + LEVELS_PER_PAGE - 1) / LEVELS_PER_PAGE;
         if (pages && m_page >= pages) m_page = pages - 1;
     }
 
@@ -348,13 +349,12 @@ protected:
         request.userAgent("Aluxs-Leaderboard-List/1.1 (Geode mod)");
         auto url = std::string("https://pointercrate.com/api/v2/demons/listed/?limit=100");
         if (after > 0) url += "&after=" + std::to_string(after);
-        m_pointercrateRequest = request.get(url);
-        m_pointercrateRequest.listen([this, after](web::WebResponse* response) {
-            if (!response || !response->ok()) {
+        m_pointercrateRequest.spawn(request.get(url), [this, after](web::WebResponse response) {
+            if (!response.ok()) {
                 finishSource(true);
                 return;
             }
-            auto parsed = response->json();
+            auto parsed = response.json();
             if (!parsed) {
                 finishSource(true);
                 return;
@@ -391,26 +391,22 @@ protected:
         auto request = web::WebRequest();
         request.timeout(std::chrono::seconds(30));
         request.userAgent("Aluxs-Leaderboard-List/1.1 (Geode mod)");
-        m_aredlRequest = request.get("https://api.aredl.net/api/aredl/levels");
-        m_aredlRequest.listen([this](web::WebResponse* response) {
-            if (response) onSourceFinished(Source::Aredl, *response);
-            else finishSource(true);
+        m_aredlRequest.spawn(request.get("https://api.aredl.net/api/aredl/levels"), [this](web::WebResponse response) {
+            onSourceFinished(Source::Aredl, std::move(response));
         });
         auto classicRequest = web::WebRequest();
         classicRequest.timeout(std::chrono::seconds(30));
         classicRequest.userAgent("Aluxs-Leaderboard-List/1.1 (Geode mod)");
-        m_classicRequest = classicRequest.get("https://api.demonlist.org/level/classic/list");
-        m_classicRequest.listen([this](web::WebResponse* response) {
-            if (response) onSourceFinished(Source::Classic, *response);
-            else finishSource(true);
+        m_classicRequest.spawn(classicRequest.get("https://api.demonlist.org/level/classic/list"), [this](web::WebResponse response) {
+            onSourceFinished(Source::Classic, std::move(response));
         });
         fetchPointercratePage(0);
     }
 
     void renderPage() {
         clearRows();
-        auto begin = m_page * PAGE_SIZE;
-        auto end = std::min(begin + PAGE_SIZE, m_visibleEntries.size());
+        auto begin = m_page * LEVELS_PER_PAGE;
+        auto end = std::min(begin + LEVELS_PER_PAGE, m_visibleEntries.size());
         constexpr float rowTop = 221.f;
         constexpr float rowStep = 17.f;
         for (size_t slot = 0; begin + slot < end; ++slot) {
@@ -470,7 +466,7 @@ protected:
             menu->addChild(open);
         }
 
-        auto pages = (m_visibleEntries.size() + PAGE_SIZE - 1) / PAGE_SIZE;
+        auto pages = (m_visibleEntries.size() + LEVELS_PER_PAGE - 1) / LEVELS_PER_PAGE;
         if (m_pageLabel) {
             m_pageLabel->setString(pages ? fmt::format("{} / {}", m_page + 1, pages).c_str() : "0 / 0");
         }
@@ -489,7 +485,7 @@ protected:
 public:
     static LeaderboardPopup* create() {
         auto ret = new LeaderboardPopup();
-        if (ret->initAnchored(440.f, 370.f)) {
+        if (ret->init(440.f, 370.f) && ret->setup()) {
             ret->autorelease();
             return ret;
         }
@@ -519,7 +515,7 @@ public:
     }
 
     void onNextPage(CCObject*) {
-        auto pages = (m_visibleEntries.size() + PAGE_SIZE - 1) / PAGE_SIZE;
+        auto pages = (m_visibleEntries.size() + LEVELS_PER_PAGE - 1) / LEVELS_PER_PAGE;
         if (m_page + 1 >= pages) return;
         ++m_page;
         renderPage();

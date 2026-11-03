@@ -22,7 +22,7 @@ All lists load asynchronously and merge by the Geometry Dash level ID. Records w
 
 ## Build and release
 
-The `Build Geode release` GitHub Actions workflow currently builds **Windows 64-bit only**. It checks that the resulting `.geode` archive contains the expected `mod.json` and a Windows DLL, then uploads it as the **Leaderboard-List-v1.0.0** artifact (retained for 30 days). Open a successful [workflow run](https://github.com/Aluxs-arch/GD-Leaderboard-list/actions/workflows/geode-release.yml) and download that artifact to obtain the `.geode` file. The package is not a macOS, iOS, or Android build. Pushing a `v*` tag also publishes a GitHub release with the package attached; only tag a tested commit intended for release. The current mod version is **v1.0.0**.
+The `Build Geode release` GitHub Actions workflow builds **Windows 64-bit, macOS, iOS, Android 32-bit, and Android 64-bit** binaries for **Geometry Dash 2.2081** using Geode SDK 5.11.2. It verifies the combined `.geode` archive and uploads it as the **Leaderboard-List-v1.0.1** artifact (retained for 30 days). Open a successful [workflow run](https://github.com/Aluxs-arch/GD-Leaderboard-list/actions/workflows/geode-release.yml) and download that artifact to obtain the `.geode` file. Pushing a `v*` tag also publishes a GitHub release with the package attached; only tag a tested commit intended for release. The mod version is **v1.0.1** (different from the Geometry Dash version).
 
 For a local build, install Geode SDK and CLI, then run:
 

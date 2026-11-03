@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail CI if the uploaded Geode package is missing metadata or a Win64 binary."""
+"""Fail CI if the combined Geode package lacks metadata or native binaries."""
 
 import json
 import sys
@@ -22,11 +22,12 @@ def verify(directory: Path, manifest: Path) -> None:
         if "mod.json" not in names:
             raise ValueError("Package has no root mod.json")
         actual = json.loads(archive.read("mod.json"))
-        for key in ("id", "version", "geode"):
+        for key in ("id", "version", "geode", "gd"):
             if actual.get(key) != expected.get(key):
                 raise ValueError(f"mod.json {key}: expected {expected.get(key)!r}, got {actual.get(key)!r}")
-        if not any(name.lower().endswith(".dll") for name in names):
-            raise ValueError("Package has no Windows DLL")
+        for extension, platform in ((".dll", "Windows"), (".dylib", "macOS/iOS"), (".so", "Android")):
+            if not any(name.lower().endswith(extension) for name in names):
+                raise ValueError(f"Package has no {platform} binary ({extension})")
     print(f"Verified {package} ({package.stat().st_size} bytes, {len(names)} ZIP entries)")
 
 
