@@ -19,7 +19,7 @@ namespace {
     constexpr unsigned AREDL_BIT = 1u << 0;
     constexpr unsigned CLASSIC_BIT = 1u << 1;
     constexpr unsigned POINTERCRATE_BIT = 1u << 2;
-    constexpr size_t PAGE_SIZE = 10;
+    constexpr size_t LEVELS_PER_PAGE = 10;
 
     struct LevelEntry {
         std::string name;
@@ -275,7 +275,7 @@ protected:
             if (rankB == 0) return true;
             return rankA < rankB;
         });
-        auto pages = (m_visibleEntries.size() + PAGE_SIZE - 1) / PAGE_SIZE;
+        auto pages = (m_visibleEntries.size() + LEVELS_PER_PAGE - 1) / LEVELS_PER_PAGE;
         if (pages && m_page >= pages) m_page = pages - 1;
     }
 
@@ -405,8 +405,8 @@ protected:
 
     void renderPage() {
         clearRows();
-        auto begin = m_page * PAGE_SIZE;
-        auto end = std::min(begin + PAGE_SIZE, m_visibleEntries.size());
+        auto begin = m_page * LEVELS_PER_PAGE;
+        auto end = std::min(begin + LEVELS_PER_PAGE, m_visibleEntries.size());
         constexpr float rowTop = 221.f;
         constexpr float rowStep = 17.f;
         for (size_t slot = 0; begin + slot < end; ++slot) {
@@ -466,7 +466,7 @@ protected:
             menu->addChild(open);
         }
 
-        auto pages = (m_visibleEntries.size() + PAGE_SIZE - 1) / PAGE_SIZE;
+        auto pages = (m_visibleEntries.size() + LEVELS_PER_PAGE - 1) / LEVELS_PER_PAGE;
         if (m_pageLabel) {
             m_pageLabel->setString(pages ? fmt::format("{} / {}", m_page + 1, pages).c_str() : "0 / 0");
         }
@@ -515,7 +515,7 @@ public:
     }
 
     void onNextPage(CCObject*) {
-        auto pages = (m_visibleEntries.size() + PAGE_SIZE - 1) / PAGE_SIZE;
+        auto pages = (m_visibleEntries.size() + LEVELS_PER_PAGE - 1) / LEVELS_PER_PAGE;
         if (m_page + 1 >= pages) return;
         ++m_page;
         renderPage();

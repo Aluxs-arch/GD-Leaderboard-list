@@ -44,7 +44,11 @@ jobs:
           ccache-variant: ""
           combine: true
           bindings-ref: e4efe171003dc084d0dec9ba356d8d2425916f2e
-          configure-args: -DSKIP_BUILDING_CODEGEN=OFF
+          # The iOS bindings generator omits FMOD includes on SDK 5.11.2.
+          # Force-include the SDK header for that target only.
+          configure-args: >-
+            -DSKIP_BUILDING_CODEGEN=OFF
+            ${{ matrix.platform == 'iOS' && format('-DCMAKE_CXX_FLAGS=-include{0}/geode-sdk-clone/loader/include/Geode/fmod/fmod.hpp', github.workspace) || '' }}
       - name: Surface build diagnostics if compilation fails
         if: failure()
         shell: bash
