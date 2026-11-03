@@ -21,17 +21,6 @@ if (DEFINED GEODE_TARGET_PLATFORM)
 endif()
 add_subdirectory(${GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 
-if (TARGET fmt)
-    # Compile fmt's implementation with C++17 to avoid consteval errors in current toolchains.
-    set_property(TARGET fmt PROPERTY CXX_STANDARD 17)
-    set_property(TARGET fmt PROPERTY CXX_STANDARD_REQUIRED ON)
-endif()
-
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS src/*.cpp)
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
 setup_geode_mod(${PROJECT_NAME})
-# fmt 11's consteval format-string checks fail on Windows Clang in the Geode entry point.
-# Force C++17 after the SDK's target features so fmt falls back to non-consteval checks.
-set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
-set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
-target_compile_options(${PROJECT_NAME} PRIVATE "$<$<CXX_COMPILER_ID:Clang>:-std=gnu++17>")

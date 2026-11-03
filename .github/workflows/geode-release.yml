@@ -30,12 +30,11 @@ jobs:
         id: build
         uses: geode-sdk/build-geode-mod@main
         with:
-          sdk: 4.0.0
+          sdk: 4.9.0
           target: ${{ matrix.platform }}
           build-config: RelWithDebInfo
           ccache-variant: ""
           combine: true
-          bindings-ref: 23c39fcda5dc660d8e92f3fb14f29b0a58a15f98
       - name: Surface build diagnostics if compilation fails
         if: failure()
         shell: bash
