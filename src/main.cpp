@@ -661,9 +661,7 @@ public:
     void loadLevelsFinished(CCArray* levels, char const* key) override {
         if (!key || m_openSearchKey != key) return;
         if (levels) {
-            CCObject* object = nullptr;
-            CCARRAY_FOREACH(levels, object) {
-                auto level = static_cast<GJGameLevel*>(object);
+            for (auto level : CCArrayExt<GJGameLevel*>(levels)) {
                 if (level && level->m_levelID.value() == m_openLevelId) {
                     showNativeLevel(level);
                     return;
