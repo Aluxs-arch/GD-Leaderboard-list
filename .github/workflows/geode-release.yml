@@ -35,6 +35,7 @@ jobs:
           build-config: RelWithDebInfo
           ccache-variant: ""
           combine: true
+          bindings-ref: 7fbea8f6a7474bcb6070e8eed303fdf37adbb461
       - name: Surface build diagnostics if compilation fails
         if: failure()
         shell: bash
