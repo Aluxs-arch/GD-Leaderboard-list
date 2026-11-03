@@ -94,7 +94,7 @@ namespace {
     }
 }
 
-class LeaderboardPopup : public geode::Popup<> {
+class LeaderboardPopup : public geode::Popup {
 protected:
     Source m_filter = Source::All;
     CCLabelBMFont* m_status = nullptr;
@@ -114,7 +114,7 @@ protected:
     std::unordered_map<std::string, size_t> m_entryById;
     std::vector<size_t> m_visibleEntries;
 
-    bool setup() override {
+    bool setup() {
         setTitle(tr("LEADERBOARD LIST", "DAFTAR LEADERBOARD"), "goldFont.fnt", 0.72f);
         auto size = m_mainLayer->getContentSize();
 
@@ -485,7 +485,7 @@ protected:
 public:
     static LeaderboardPopup* create() {
         auto ret = new LeaderboardPopup();
-        if (ret->initAnchored(440.f, 370.f)) {
+        if (ret->init(440.f, 370.f) && ret->setup()) {
             ret->autorelease();
             return ret;
         }
