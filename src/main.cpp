@@ -113,8 +113,7 @@ protected:
     std::unordered_map<std::string, size_t> m_entryById;
     std::vector<size_t> m_visibleEntries;
 
-    bool init() {
-        if (!Popup::init(440.f, 370.f)) return false;
+    bool setup() override {
         setTitle(tr("LEADERBOARD LIST", "DAFTAR LEADERBOARD"), "goldFont.fnt", 0.72f);
         auto size = m_mainLayer->getContentSize();
 
@@ -490,7 +489,7 @@ protected:
 public:
     static LeaderboardPopup* create() {
         auto ret = new LeaderboardPopup();
-        if (ret->init()) {
+        if (ret->initAnchored(440.f, 370.f)) {
             ret->autorelease();
             return ret;
         }
