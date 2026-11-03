@@ -8,7 +8,7 @@
   },
   "id": "aluxs.leaderboardlist",
   "name": "Leaderboard List",
-  "version": "v1.0.1",
+  "version": "v1.0.2",
   "developer": "Aluxs",
   "description": "Browse a unified, paginated live index of AREDL, Global Demonlist Classic, and Pointercrate in-game. / Jelajahi daftar live terpadu AREDL, Global Demonlist Classic, dan Pointercrate di dalam game.",
   "repository": "https://github.com/Aluxs-arch/GD-Leaderboard-list",
@@ -29,6 +29,20 @@
     "show-floating-button": {
       "name": "Floating Extreme button",
       "description": "Show the leaderboard shortcut on the main menu. / Tampilkan pintasan leaderboard di menu utama.",
+      "type": "bool",
+      "default": true
+    },
+    "floating-size": {
+      "name": "Floating button size / Ukuran tombol",
+      "description": "Choose the shortcut size, then drag it anywhere on the main menu. / Pilih ukuran lalu geser tombol ke posisi yang diinginkan.",
+      "type": "string",
+      "default": "large",
+      "one-of": ["small", "medium", "large", "extra-large"],
+      "one-of-labels": ["Small / Kecil", "Medium / Sedang", "Large / Besar", "Extra large / Sangat besar"]
+    },
+    "show-floating-label": {
+      "name": "Floating button caption / Label tombol",
+      "description": "Show the EXTREME caption below the shortcut. / Tampilkan tulisan EXTREME di bawah tombol.",
       "type": "bool",
       "default": true
     }

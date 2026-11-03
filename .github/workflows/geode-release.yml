@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 env:
-  BUILD_ARTIFACT_NAME: Leaderboard-List-v1.0.1
+  BUILD_ARTIFACT_NAME: Leaderboard-List-v1.0.2
 
 jobs:
   build:
@@ -67,10 +67,16 @@ jobs:
               printf '::error::%s\n' "$line"
             done
           else
-            echo '::error::No build.ninja generated; initial CMake configure failed.'
-            ls -la build 2>/dev/null || true
-            if [ -f build/CMakeFiles/CMakeConfigureLog.yaml ]; then
-              tail -n 50 build/CMakeFiles/CMakeConfigureLog.yaml | while IFS= read -r line; do printf '::error::%s\n' "$line"; done
+            echo '::error::No build.ninja generated; checking CMake configuration.'
+            if [ "${{ matrix.platform }}" = 'iOS' ]; then
+              cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
+                -DCMAKE_SYSTEM_NAME=iOS -DGEODE_TARGET_PLATFORM=iOS \
+                -DGEODE_DISABLE_PRECOMPILED_HEADERS=OFF -DGEODE_DONT_INSTALL_MODS=ON \
+                -DSKIP_BUILDING_CODEGEN=OFF \
+                "-DCMAKE_CXX_FLAGS=-include${{ github.workspace }}/geode-sdk-clone/loader/include/Geode/fmod/fmod.hpp" \
+                > /tmp/geode-config-diagnostic.log 2>&1 || true
+              tail -n 60 /tmp/geode-config-diagnostic.log | while IFS= read -r line; do printf '::error::%s\n' "$line"; done
             fi
           fi
           mkdir -p geode-diagnostics
