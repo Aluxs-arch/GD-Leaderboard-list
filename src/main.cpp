@@ -218,7 +218,7 @@ protected:
         m_pageLabel->setPosition({ size.width / 2.f + 43.f, 31.f });
         m_mainLayer->addChild(m_pageLabel);
 
-        auto footer = CCLabelBMFont::create(tr("ALUXS  ·  DRAG THE SHORTCUT TO MOVE", "ALUXS  ·  GESER TOMBOL UNTUK MEMINDAHKAN"), "chatFont.fnt");
+        auto footer = CCLabelBMFont::create(tr("ALUXS  ·  DRAG THE SHORTCUT TO MOVE", "ALUXS  ·  GESER TOMBOL UNTUK MEMINDAHKAN").c_str(), "chatFont.fnt");
         footer->setScale(0.40f);
         footer->setColor({ 109, 128, 154 });
         footer->setPosition({ size.width / 2.f, 11.f });
@@ -577,7 +577,7 @@ class DraggableFabMenu : public CCMenu {
     float m_edge = 45.f;
     bool m_dragged = false;
 
-    CCPoint clamped(CCPoint point) const {
+    CCPoint clamped(CCPoint point) {
         auto parentSize = getParent()->getContentSize();
         return { std::clamp(point.x, m_edge, std::max(m_edge, parentSize.width - m_edge)),
             std::clamp(point.y, m_edge, std::max(m_edge, parentSize.height - m_edge)) };
