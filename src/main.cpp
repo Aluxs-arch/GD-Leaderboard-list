@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -19,7 +20,7 @@ namespace {
     constexpr unsigned AREDL_BIT = 1u << 0;
     constexpr unsigned CLASSIC_BIT = 1u << 1;
     constexpr unsigned POINTERCRATE_BIT = 1u << 2;
-    constexpr size_t LEVELS_PER_PAGE = 10;
+    constexpr size_t LEVELS_PER_PAGE = 8;
 
     struct LevelEntry {
         std::string name;
@@ -118,21 +119,32 @@ protected:
         setTitle(tr("LEADERBOARD LIST", "DAFTAR LEADERBOARD"), "goldFont.fnt", 0.72f);
         auto size = m_mainLayer->getContentSize();
 
+        // An opaque canvas masks the game's default brown popup skin. Keep the
+        // artwork subtle so labels stay readable over bright game backgrounds.
+        auto canvas = CCLayerColor::create(ccc4(12, 21, 37, 255));
+        canvas->setContentSize(size);
+        m_mainLayer->addChild(canvas, -3);
+
         auto background = CCSprite::create("leaderboard-bg.png"_spr);
         if (background) {
             background->setAnchorPoint({ 0.f, 0.f });
             background->setPosition({ 15.f, 12.f });
             background->setScaleX(410.f / background->getContentSize().width);
             background->setScaleY(306.f / background->getContentSize().height);
-            background->setOpacity(220);
+            background->setOpacity(72);
             background->setID("leaderboard-panel-background"_spr);
             m_mainLayer->addChild(background, -2);
         }
 
-        auto panel = CCLayerColor::create(ccc4(10, 17, 31, 138));
+        auto panel = CCLayerColor::create(ccc4(10, 17, 31, 80));
         panel->setContentSize({ 410.f, 306.f });
         panel->setPosition({ 15.f, 12.f });
         m_mainLayer->addChild(panel, -1);
+
+        auto accent = CCLayerColor::create(ccc4(224, 178, 91, 255));
+        accent->setContentSize({ 342.f, 1.f });
+        accent->setPosition({ 73.f, size.height - 73.f });
+        m_mainLayer->addChild(accent);
 
         auto logo = CCSprite::create("leaderboard-logo.png"_spr);
         if (logo) {
@@ -171,7 +183,7 @@ protected:
         m_status->setColor({ 165, 190, 218 });
         m_status->setAnchorPoint({ 0.f, 0.5f });
         m_status->setPosition({ 25.f, size.height - 118.f });
-        m_status->setWidth(300.f);
+        m_status->setWidth(310.f);
         m_mainLayer->addChild(m_status);
 
         auto refreshMenu = CCMenu::create();
@@ -206,7 +218,7 @@ protected:
         m_pageLabel->setPosition({ size.width / 2.f + 43.f, 31.f });
         m_mainLayer->addChild(m_pageLabel);
 
-        auto footer = CCLabelBMFont::create("Aluxs  ·  GitHub  ·  Aluxs-arch", "chatFont.fnt");
+        auto footer = CCLabelBMFont::create(tr("ALUXS  ·  DRAG THE SHORTCUT TO MOVE", "ALUXS  ·  GESER TOMBOL UNTUK MEMINDAHKAN"), "chatFont.fnt");
         footer->setScale(0.40f);
         footer->setColor({ 109, 128, 154 });
         footer->setPosition({ size.width / 2.f, 11.f });
@@ -408,11 +420,11 @@ protected:
         auto begin = m_page * LEVELS_PER_PAGE;
         auto end = std::min(begin + LEVELS_PER_PAGE, m_visibleEntries.size());
         constexpr float rowTop = 221.f;
-        constexpr float rowStep = 17.f;
+        constexpr float rowStep = 22.f;
         for (size_t slot = 0; begin + slot < end; ++slot) {
             auto const& entry = m_entries[m_visibleEntries[begin + slot]];
             auto row = CCLayerColor::create(slot % 2 ? ccc4(23, 34, 52, 240) : ccc4(29, 42, 62, 240));
-            row->setContentSize({ 390.f, 16.f });
+            row->setContentSize({ 390.f, 21.f });
             row->setPosition({ 25.f, rowTop - static_cast<float>(slot) * rowStep });
             row->setID("leaderboard-level-row"_spr);
             m_rows->addChild(row);
@@ -421,13 +433,13 @@ protected:
             auto rank = CCLabelBMFont::create(rankNumber ? fmt::format("#{}", rankNumber).c_str() : "-", "goldFont.fnt");
             rank->setScale(0.32f);
             rank->setAnchorPoint({ 0.f, 0.5f });
-            rank->setPosition({ 6.f, 8.f });
+            rank->setPosition({ 6.f, 10.5f });
             row->addChild(rank);
 
             auto name = CCLabelBMFont::create(entry.name.c_str(), "chatFont.fnt");
             name->setScale(0.45f);
             name->setAnchorPoint({ 0.f, 0.5f });
-            name->setPosition({ 43.f, 8.f });
+            name->setPosition({ 43.f, 10.5f });
             name->setWidth(174.f);
             row->addChild(name);
 
@@ -435,34 +447,34 @@ protected:
             badge->setScale(0.36f);
             badge->setColor({ 128, 193, 213 });
             badge->setAnchorPoint({ 0.f, 0.5f });
-            badge->setPosition({ 224.f, 8.f });
+            badge->setPosition({ 224.f, 10.5f });
             row->addChild(badge);
 
             auto menu = CCMenu::create();
             menu->setPosition({ 0.f, 0.f });
             row->addChild(menu);
             auto info = CCMenuItemSpriteExtra::create(
-                ButtonSprite::create("INFO", 36, true, "goldFont.fnt", "GJ_button_05.png", 18.f, 0.48f),
+                ButtonSprite::create("INFO", 36, true, "goldFont.fnt", "GJ_button_05.png", 21.f, 0.48f),
                 this, menu_selector(LeaderboardPopup::onShowDetails)
             );
             info->setTag(static_cast<int>(m_visibleEntries[begin + slot]));
-            info->setPosition({ 276.f, 8.f });
+            info->setPosition({ 276.f, 10.5f });
             menu->addChild(info);
 
             auto copy = CCMenuItemSpriteExtra::create(
-                ButtonSprite::create("ID", 34, true, "goldFont.fnt", "GJ_button_05.png", 18.f, 0.50f),
+                ButtonSprite::create("ID", 34, true, "goldFont.fnt", "GJ_button_05.png", 21.f, 0.50f),
                 this, menu_selector(LeaderboardPopup::onCopyID)
             );
             copy->setTag(static_cast<int>(m_visibleEntries[begin + slot]));
-            copy->setPosition({ 325.f, 8.f });
+            copy->setPosition({ 325.f, 10.5f });
             menu->addChild(copy);
 
             auto open = CCMenuItemSpriteExtra::create(
-                ButtonSprite::create("OPEN", 49, true, "goldFont.fnt", "GJ_button_01.png", 18.f, 0.50f),
+                ButtonSprite::create("OPEN", 49, true, "goldFont.fnt", "GJ_button_01.png", 21.f, 0.50f),
                 this, menu_selector(LeaderboardPopup::onOpenEntry)
             );
             open->setTag(static_cast<int>(m_visibleEntries[begin + slot]));
-            open->setPosition({ 371.f, 8.f });
+            open->setPosition({ 371.f, 10.5f });
             menu->addChild(open);
         }
 
@@ -486,6 +498,11 @@ public:
     static LeaderboardPopup* create() {
         auto ret = new LeaderboardPopup();
         if (ret->init(440.f, 370.f) && ret->setup()) {
+            // The popup's natural size is larger than a mobile GD viewport.
+            // Fit it to the visible area instead of cropping its title/close button.
+            auto visible = CCDirector::sharedDirector()->getWinSize();
+            ret->setScale(std::min({ 1.f, (visible.width - 16.f) / 440.f,
+                (visible.height - 16.f) / 370.f }));
             ret->autorelease();
             return ret;
         }
@@ -552,32 +569,112 @@ public:
 
 };
 
+// A menu owns the touch, so taps still use the normal GD menu-item callback.
+// Once the finger moves past a short threshold it becomes a drag instead.
+class DraggableFabMenu : public CCMenu {
+    CCPoint m_touchStart = {};
+    CCPoint m_origin = {};
+    float m_edge = 45.f;
+    bool m_dragged = false;
+
+    CCPoint clamped(CCPoint point) const {
+        auto parentSize = getParent()->getContentSize();
+        return { std::clamp(point.x, m_edge, std::max(m_edge, parentSize.width - m_edge)),
+            std::clamp(point.y, m_edge, std::max(m_edge, parentSize.height - m_edge)) };
+    }
+
+public:
+    static DraggableFabMenu* create(float edge) {
+        auto menu = new DraggableFabMenu();
+        if (menu && menu->init()) {
+            menu->m_edge = edge;
+            menu->autorelease();
+            return menu;
+        }
+        delete menu;
+        return nullptr;
+    }
+
+    void restorePosition() {
+        auto bounds = getParent()->getContentSize();
+        auto x = std::clamp(Mod::get()->getSavedValue<float>("floating-x", .89f), 0.f, 1.f);
+        auto y = std::clamp(Mod::get()->getSavedValue<float>("floating-y", .35f), 0.f, 1.f);
+        setPosition(clamped({ bounds.width * x, bounds.height * y }));
+    }
+
+    bool ccTouchBegan(CCTouch* touch, CCEvent* event) override {
+        if (!CCMenu::ccTouchBegan(touch, event)) return false;
+        m_touchStart = getParent()->convertToNodeSpace(touch->getLocation());
+        m_origin = getPosition();
+        m_dragged = false;
+        return true;
+    }
+
+    void ccTouchMoved(CCTouch* touch, CCEvent* event) override {
+        auto local = getParent()->convertToNodeSpace(touch->getLocation());
+        auto dx = local.x - m_touchStart.x;
+        auto dy = local.y - m_touchStart.y;
+        if (!m_dragged && dx * dx + dy * dy > 36.f) {
+            m_dragged = true;
+            CCMenu::ccTouchCancelled(touch, event);
+        }
+        if (m_dragged) setPosition(clamped({ m_origin.x + dx, m_origin.y + dy }));
+        else CCMenu::ccTouchMoved(touch, event);
+    }
+
+    void ccTouchEnded(CCTouch* touch, CCEvent* event) override {
+        if (!m_dragged) {
+            CCMenu::ccTouchEnded(touch, event);
+            return;
+        }
+        auto bounds = getParent()->getContentSize();
+        if (bounds.width > 0.f && bounds.height > 0.f) {
+            Mod::get()->setSavedValue("floating-x", getPositionX() / bounds.width);
+            Mod::get()->setSavedValue("floating-y", getPositionY() / bounds.height);
+        }
+        m_dragged = false;
+    }
+
+    void ccTouchCancelled(CCTouch* touch, CCEvent* event) override {
+        if (!m_dragged) CCMenu::ccTouchCancelled(touch, event);
+        m_dragged = false;
+    }
+};
+
 class $modify(LeaderboardMenuLayer, MenuLayer) {
     bool init() {
         if (!MenuLayer::init()) return false;
         if (!Mod::get()->getSettingValue<bool>("show-floating-button")) return true;
 
-        auto winSize = CCDirector::sharedDirector()->getWinSize();
-        auto menu = CCMenu::create();
-        menu->setPosition({ winSize.width - 50.f, 100.f });
-        menu->setID("aluxs-leaderboard-fab"_spr);
         auto icon = CCSprite::create("floating-icon.png"_spr);
         if (!icon) return true;
-        icon->setScale(0.19f);
+        auto preference = Mod::get()->getSettingValue<std::string>("floating-size");
+        float diameter = preference == "small" ? 46.f : preference == "medium" ? 62.f
+            : preference == "extra-large" ? 98.f : 80.f;
+        icon->setScale(diameter / icon->getContentSize().width);
+        bool showLabel = Mod::get()->getSettingValue<bool>("show-floating-label");
+        auto menu = DraggableFabMenu::create(diameter / 2.f + (showLabel ? 20.f : 9.f));
+        if (!menu) return true;
+        menu->setID("aluxs-leaderboard-fab"_spr);
         auto button = CCMenuItemSpriteExtra::create(icon, this, menu_selector(LeaderboardMenuLayer::onLeaderboard));
         menu->addChild(button);
-        auto fabLabel = CCLabelBMFont::create("EXTREME", "goldFont.fnt");
-        fabLabel->setScale(0.34f);
-        fabLabel->setPosition({ 0.f, -31.f });
-        menu->addChild(fabLabel);
+        if (showLabel) {
+            auto label = CCLabelBMFont::create("EXTREME", "goldFont.fnt");
+            label->setScale(0.35f);
+            label->setPosition({ 0.f, -diameter / 2.f - 9.f });
+            menu->addChild(label);
+        }
         button->runAction(CCRepeatForever::create(CCSequence::create(
-            CCScaleTo::create(1.25f, 1.04f),
-            CCScaleTo::create(1.25f, 1.0f),
+            CCScaleTo::create(1.4f, 1.035f),
+            CCScaleTo::create(1.4f, 1.0f),
             nullptr
         )));
-        this->addChild(menu, 100);
+        addChild(menu, 100);
+        menu->restorePosition();
         return true;
     }
 
-    void onLeaderboard(CCObject*) { LeaderboardPopup::create()->show(); }
+    void onLeaderboard(CCObject*) {
+        if (auto popup = LeaderboardPopup::create()) popup->show();
+    }
 };

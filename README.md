@@ -6,11 +6,11 @@ A polished in-game Geometry Dash leaderboard companion for Geode, credited to **
 
 ## Features
 
-- Original navy-and-gold logo, quiet angular panel background, and a matching floating icon with a gentle pulse.
+- Original navy-and-gold logo, opaque high-contrast panel, and a responsive popup that fits smaller mobile viewports without cropping.
 - One **ALL** index merges the public level lists from AREDL, Global Demonlist Classic, and Pointercrate by Geometry Dash in-game ID.
 - Source tabs for **ALL / AREDL / CLASSIC / POINTER** plus source marks on each matching level.
-- **10 levels per page**, dynamic page count, and previous/next navigation. **INFO** shows each source rank, **ID** copies the GD ID, and **OPEN** visits that level on a list site.
-- Refresh/error states, English and Bahasa Indonesia UI, and a setting to hide the floating shortcut.
+- **8 spacious levels per page**, dynamic page count, and previous/next navigation. **INFO** shows each source rank, **ID** copies the GD ID, and **OPEN** visits that level on a list site.
+- Refresh/error states and English/Bahasa Indonesia UI. The floating shortcut has four size presets (small to extra-large), an optional caption, and drag-to-move positioning saved across sessions; it can also be hidden. Drag on the icon to move it, tap it to open the list.
 
 ## Live data
 
@@ -22,7 +22,7 @@ All lists load asynchronously and merge by the Geometry Dash level ID. Records w
 
 ## Build and release
 
-The `Build Geode release` GitHub Actions workflow builds **Windows 64-bit, macOS, iOS, Android 32-bit, and Android 64-bit** binaries for **Geometry Dash 2.2081** using Geode SDK 5.11.2. It verifies the combined `.geode` archive and uploads it as the **Leaderboard-List-v1.0.1** artifact (retained for 30 days). Open a successful [workflow run](https://github.com/Aluxs-arch/GD-Leaderboard-list/actions/workflows/geode-release.yml) and download that artifact to obtain the `.geode` file. Pushing a `v*` tag also publishes a GitHub release with the package attached; only tag a tested commit intended for release. The mod version is **v1.0.1** (different from the Geometry Dash version).
+The `Build Geode release` GitHub Actions workflow builds **Windows 64-bit, macOS, iOS, Android 32-bit, and Android 64-bit** binaries for **Geometry Dash 2.2081** using Geode SDK 5.11.2. It verifies the combined `.geode` archive and uploads it as the **Leaderboard-List-v1.0.2** artifact (retained for 30 days). Open a successful [workflow run](https://github.com/Aluxs-arch/GD-Leaderboard-list/actions/workflows/geode-release.yml) and download that artifact to obtain the `.geode` file. Pushing a `v*` tag also publishes a GitHub release with the package attached; only tag a tested commit intended for release. The mod version is **v1.0.2** (different from the Geometry Dash version).
 
 For a local build, install Geode SDK and CLI, then run:
 
