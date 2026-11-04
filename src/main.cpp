@@ -125,6 +125,84 @@ namespace {
 
 }
 
+// Drag from any unused area of the panel. Interactive CCMenu controls keep
+// their normal (-128) touch priority; this background hit surface uses -127.
+class PopupDragMenu : public CCMenu {
+    CCNode* m_panel = nullptr; // owned by the same popup; menu is its child
+    CCPoint m_touchStart = {};
+    CCPoint m_startPosition = {};
+    bool m_dragging = false;
+
+    CCPoint clampToScreen(CCPoint point) const {
+        auto screen = CCDirector::sharedDirector()->getWinSize();
+        auto scaled = m_panel->getContentSize() * m_panel->getScale();
+        float x = scaled.width / 2.f + 6.f;
+        float y = scaled.height / 2.f + 6.f;
+        return { std::clamp(point.x, x, std::max(x, screen.width - x)),
+            std::clamp(point.y, y, std::max(y, screen.height - y)) };
+    }
+
+public:
+    static PopupDragMenu* create(CCNode* panel) {
+        auto menu = new PopupDragMenu();
+        if (menu && menu->init()) {
+            menu->m_panel = panel;
+            menu->setHandlerPriority(-127);
+            menu->setPosition({ 0.f, 0.f });
+            auto hitArea = CCLayerColor::create(ccc4(0, 0, 0, 0));
+            hitArea->setContentSize({ 426.f, 354.f });
+            auto hit = CCMenuItemSpriteExtra::create(hitArea, menu, menu_selector(PopupDragMenu::onTap));
+            hit->setPosition({ 220.f, 185.f });
+            menu->addChild(hit);
+            menu->autorelease();
+            return menu;
+        }
+        delete menu;
+        return nullptr;
+    }
+
+    void onTap(CCObject*) {} // Blank-space taps have no action.
+
+    void moveTo(CCPoint point, bool save) {
+        if (!m_panel) return;
+        m_panel->setPosition(clampToScreen(point));
+        if (save && Mod::get()->getSettingValue<bool>("remember-popup-position")) {
+            auto screen = CCDirector::sharedDirector()->getWinSize();
+            Mod::get()->setSavedValue("popup-x", m_panel->getPositionX() / screen.width);
+            Mod::get()->setSavedValue("popup-y", m_panel->getPositionY() / screen.height);
+        }
+    }
+
+    bool ccTouchBegan(CCTouch* touch, CCEvent* event) override {
+        if (!CCMenu::ccTouchBegan(touch, event)) return false;
+        m_touchStart = touch->getLocation();
+        m_startPosition = m_panel->getPosition();
+        m_dragging = false;
+        return true;
+    }
+
+    void ccTouchMoved(CCTouch* touch, CCEvent* event) override {
+        auto delta = touch->getLocation() - m_touchStart;
+        if (!m_dragging && delta.x * delta.x + delta.y * delta.y > 36.f) {
+            m_dragging = true;
+            CCMenu::ccTouchCancelled(touch, event);
+        }
+        if (m_dragging) moveTo(m_startPosition + delta, false);
+        else CCMenu::ccTouchMoved(touch, event);
+    }
+
+    void ccTouchEnded(CCTouch* touch, CCEvent* event) override {
+        if (!m_dragging) CCMenu::ccTouchEnded(touch, event);
+        else moveTo(m_panel->getPosition(), true);
+        m_dragging = false;
+    }
+
+    void ccTouchCancelled(CCTouch* touch, CCEvent* event) override {
+        if (!m_dragging) CCMenu::ccTouchCancelled(touch, event);
+        m_dragging = false;
+    }
+};
+
 class LeaderboardPopup : public geode::Popup, public LevelManagerDelegate {
 protected:
     Source m_filter = Source::All;
@@ -132,6 +210,7 @@ protected:
     CCLabelBMFont* m_pageLabel = nullptr;
     CCNode* m_rows = nullptr;
     CCMenu* m_pageMenu = nullptr;
+    PopupDragMenu* m_dragSurface = nullptr;
     CCMenu* m_filterMenu = nullptr;
     std::array<CCMenuItemSpriteExtra*, 4> m_filterButtons{};
     std::array<CCLayerColor*, 4> m_filterAccents{};
@@ -160,6 +239,8 @@ protected:
         // Popup::init already creates the full-screen black scrim. Hide only
         // its stock brown nine-slice: our resource is the actual foreground.
         m_bgSprite->setVisible(false);
+        // The default close button sits beyond the top-left edge; keep it inside.
+        m_closeBtn->setPosition({ 20.f, size.height - 18.f });
         auto cover = isGDBlue() ? CCSprite::create("leaderboard-bg.png"_spr)
             : CCSprite::create("leaderboard-bg-midnight.png"_spr);
         if (cover) {
@@ -173,14 +254,14 @@ protected:
 
         auto logo = CCSprite::create("extreme-demon.png"_spr);
         if (logo) {
-            logo->setScale(52.f / logo->getContentSize().width);
-            logo->setPosition({ 48.f, size.height - 50.f });
+            logo->setScale(42.f / logo->getContentSize().width);
+            logo->setPosition({ 55.f, size.height - 51.f });
             logo->setID("leaderboard-brand-mark"_spr);
             m_mainLayer->addChild(logo);
             if (!Mod::get()->getSettingValue<bool>("reduce-motion")) {
                 auto aura = CCSprite::create("extreme-demon.png"_spr);
                 if (aura) {
-                    aura->setScale(65.f / aura->getContentSize().width);
+                    aura->setScale(50.f / aura->getContentSize().width);
                     aura->setPosition(logo->getPosition());
                     aura->setOpacity(48);
                     m_mainLayer->addChild(aura, -1);
@@ -192,19 +273,19 @@ protected:
         }
 
         auto brand = CCLabelBMFont::create("EXTREME  /  ALUXS", "goldFont.fnt");
-        brand->setScale(0.42f);
+        brand->limitLabelWidth(260.f, .40f, .30f);
         brand->setAnchorPoint({ 0.f, 0.5f });
-        brand->setPosition({ 82.f, size.height - 41.f });
+        brand->setPosition({ 84.f, size.height - 41.f });
         m_mainLayer->addChild(brand);
 
         auto subtitle = CCLabelBMFont::create(
             tr("Three lists. One direct path to the level.", "Tiga list. Satu jalan langsung ke level.").c_str(),
             "chatFont.fnt"
         );
-        subtitle->setScale(0.50f);
+        subtitle->limitLabelWidth(305.f, .46f, .30f);
         subtitle->setAnchorPoint({ 0.f, 0.5f });
         subtitle->setColor({ 160, 181, 207 });
-        subtitle->setPosition({ 82.f, size.height - 61.f });
+        subtitle->setPosition({ 84.f, size.height - 61.f });
         m_mainLayer->addChild(subtitle);
 
         m_filterMenu = CCMenu::create();
@@ -216,11 +297,11 @@ protected:
         addFilterButton("POINTER", Source::Pointercrate, 145.f);
 
         m_status = CCLabelBMFont::create("Preparing live lists…", "chatFont.fnt");
-        m_status->setScale(0.56f);
+        m_status->limitLabelWidth(300.f, .51f, .30f);
         m_status->setColor(isGDBlue() ? ccColor3B{ 235, 245, 255 } : ccColor3B{ 165, 190, 218 });
         m_status->setAnchorPoint({ 0.f, 0.5f });
         m_status->setPosition({ 25.f, size.height - 118.f });
-        m_status->setWidth(310.f);
+        // Keep long API/status messages away from the refresh button.
         m_mainLayer->addChild(m_status);
 
         auto refreshMenu = CCMenu::create();
@@ -255,11 +336,22 @@ protected:
         m_pageLabel->setPosition({ size.width / 2.f + 43.f, 31.f });
         m_mainLayer->addChild(m_pageLabel);
 
-        auto footer = CCLabelBMFont::create(tr("ALUXS  ·  DRAG THE SHORTCUT TO MOVE", "ALUXS  ·  GESER TOMBOL UNTUK MEMINDAHKAN").c_str(), "chatFont.fnt");
-        footer->setScale(0.40f);
+        auto footer = CCLabelBMFont::create(tr("DRAG EMPTY PANEL TO MOVE  ·  ALUXS", "GESER AREA KOSONG  ·  ALUXS").c_str(), "chatFont.fnt");
+        footer->limitLabelWidth(365.f, .35f, .26f);
         footer->setColor({ 109, 128, 154 });
         footer->setPosition({ size.width / 2.f, 11.f });
         m_mainLayer->addChild(footer);
+
+        // This sits *behind* every interactive menu. They get the touch first.
+        m_dragSurface = PopupDragMenu::create(m_mainLayer);
+        if (m_dragSurface) m_mainLayer->addChild(m_dragSurface, -1);
+        auto resetMenu = CCMenu::create();
+        resetMenu->setPosition({ 72.f, 31.f });
+        resetMenu->addChild(CCMenuItemSpriteExtra::create(
+            actionSurface(tr("CENTER", "TENGAH").c_str(), 74.f, 21.f),
+            this, menu_selector(LeaderboardPopup::onCenterPanel)
+        ));
+        m_mainLayer->addChild(resetMenu);
 
         refreshLists();
         return true;
@@ -289,7 +381,10 @@ protected:
     }
 
     void setStatus(std::string const& text) {
-        if (m_status) m_status->setString(text.c_str());
+        if (m_status) {
+            m_status->setString(text.c_str());
+            m_status->limitLabelWidth(300.f, .51f, .30f);
+        }
     }
 
     void clearRows() {
@@ -536,7 +631,15 @@ protected:
             rank->setPosition({ 5.f, 14.5f });
             row->addChild(rank);
 
-            if (Mod::get()->getSettingValue<bool>("show-thumbnails")) {
+            bool showThumbnails = Mod::get()->getSettingValue<bool>("show-thumbnails");
+            if (showThumbnails) {
+                // A thin permanent frame remains visible when an async video
+                // cover replaces the illustrated fallback inside the holder.
+                auto frame = CCLayerColor::create(isGDBlue() ? ccc4(161, 225, 248, 255)
+                    : ccc4(198, 154, 112, 255));
+                frame->setContentSize({ 46.f, 28.f });
+                frame->setPosition({ 30.f, .5f });
+                row->addChild(frame);
                 auto holder = CCNode::create();
                 holder->setContentSize({ 44.f, 26.f });
                 holder->setPosition({ 31.f, 1.5f });
@@ -572,12 +675,12 @@ protected:
             auto name = CCLabelBMFont::create(entry.name.empty() ? "Unknown" : entry.name.c_str(), "chatFont.fnt");
             name->setScale(.43f);
             name->setAnchorPoint({ 0.f, .5f });
-            name->setPosition({ 80.f, 14.5f });
-            name->setWidth(128.f);
+            name->setPosition({ showThumbnails ? 80.f : 33.f, 14.5f });
+            name->limitLabelWidth(showThumbnails ? 128.f : 174.f, .43f, .30f);
             row->addChild(name);
 
             auto badge = CCLabelBMFont::create(sourceMarks(entry).c_str(), "chatFont.fnt");
-            badge->setScale(.34f);
+            badge->limitLabelWidth(35.f, .34f, .25f);
             badge->setColor(isGDBlue() ? ccColor3B{ 185, 232, 250 } : ccColor3B{ 132, 198, 210 });
             badge->setVisible(Mod::get()->getSettingValue<bool>("show-source-marks"));
             badge->setAnchorPoint({ 0.f, .5f });
@@ -623,8 +726,18 @@ public:
             auto visible = CCDirector::sharedDirector()->getWinSize();
             // Scale the foreground ONLY; scaling Popup itself also shrinks
             // its built-in black scrim, leaving uncovered game at the edges.
-            ret->m_mainLayer->setScale(std::min({ 1.f, (visible.width - 16.f) / 440.f,
-                (visible.height - 16.f) / 370.f }));
+            auto preference = Mod::get()->getSettingValue<std::string>("popup-size");
+            float sizeFactor = preference == "large" ? 1.f : preference == "normal" ? .95f : .82f;
+            auto fit = std::min({ 1.f, (visible.width - 24.f) / 440.f,
+                (visible.height - 24.f) / 370.f });
+            ret->m_mainLayer->setScale(fit * sizeFactor);
+            auto x = .5f, y = .5f;
+            if (Mod::get()->getSettingValue<bool>("remember-popup-position")) {
+                x = std::clamp(Mod::get()->getSavedValue<float>("popup-x", .5f), 0.f, 1.f);
+                y = std::clamp(Mod::get()->getSavedValue<float>("popup-y", .5f), 0.f, 1.f);
+            }
+            if (ret->m_dragSurface)
+                ret->m_dragSurface->moveTo({ visible.width * x, visible.height * y }, false);
             ret->setOpacity(Mod::get()->getSettingValue<bool>("dim-background") ? 155 : 0);
             ret->autorelease();
             return ret;
@@ -649,6 +762,11 @@ public:
     }
 
     void onRefresh(CCObject*) { refreshLists(); }
+
+    void onCenterPanel(CCObject*) {
+        auto visible = CCDirector::sharedDirector()->getWinSize();
+        if (m_dragSurface) m_dragSurface->moveTo({ visible.width / 2.f, visible.height / 2.f }, true);
+    }
 
     void onPreviousPage(CCObject*) {
         if (!m_page) return;
