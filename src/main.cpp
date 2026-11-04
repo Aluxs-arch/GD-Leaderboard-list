@@ -99,15 +99,24 @@ namespace {
         return "";
     }
 
-    // Native, unfussy controls instead of mixing four stock GD button skins.
+    bool isGDBlue() {
+        return Mod::get()->getSettingValue<std::string>("panel-theme") != "midnight";
+    }
+
+    // A restrained Geometry Dash palette: blue tabs, green actions, pale bevels.
     CCNode* actionSurface(char const* label, float width, float height, bool primary = false) {
-        auto surface = CCLayerColor::create(primary ? ccc4(173, 121, 70, 255) : ccc4(36, 54, 72, 255));
+        auto blue = isGDBlue();
+        auto fill = blue ? (primary ? ccc4(46, 143, 89, 255) : ccc4(37, 111, 180, 255))
+            : (primary ? ccc4(173, 121, 70, 255) : ccc4(36, 54, 72, 255));
+        auto surface = CCLayerColor::create(fill);
         surface->setContentSize({ width, height });
-        auto line = CCLayerColor::create(primary ? ccc4(239, 195, 129, 255) : ccc4(92, 127, 142, 255));
+        auto lineColor = blue ? (primary ? ccc4(142, 221, 166, 255) : ccc4(153, 213, 248, 255))
+            : (primary ? ccc4(239, 195, 129, 255) : ccc4(92, 127, 142, 255));
+        auto line = CCLayerColor::create(lineColor);
         line->setContentSize({ width, 1.f });
         line->setPosition({ 0.f, height - 1.f });
         surface->addChild(line);
-        auto text = CCLabelBMFont::create(label, "goldFont.fnt");
+        auto text = CCLabelBMFont::create(label, blue ? "bigFont.fnt" : "goldFont.fnt");
         text->setScale(primary ? .40f : .38f);
         text->setPosition({ width / 2.f, height / 2.f });
         surface->addChild(text);
@@ -144,10 +153,15 @@ protected:
     bool setup() {
         setTitle(tr("LEADERBOARD LIST", "DAFTAR LEADERBOARD"), "goldFont.fnt", 0.72f);
         auto size = m_mainLayer->getContentSize();
+        if (Mod::get()->getSettingValue<bool>("remember-tab")) {
+            m_filter = static_cast<Source>(std::clamp(Mod::get()->getSavedValue<int>("last-tab", 0), 0, 3));
+        }
 
-        // The bundled cover is the full surface, not a translucent overlay on
-        // Geode's brown default skin. All content sits inside its inset border.
-        auto cover = CCSprite::create("leaderboard-bg.png"_spr);
+        // Popup::init already creates the full-screen black scrim. Hide only
+        // its stock brown nine-slice: our resource is the actual foreground.
+        m_bgSprite->setVisible(false);
+        auto cover = isGDBlue() ? CCSprite::create("leaderboard-bg.png"_spr)
+            : CCSprite::create("leaderboard-bg-midnight.png"_spr);
         if (cover) {
             cover->setAnchorPoint({ 0.f, 0.f });
             cover->setPosition({ 0.f, 0.f });
@@ -203,7 +217,7 @@ protected:
 
         m_status = CCLabelBMFont::create("Preparing live lists…", "chatFont.fnt");
         m_status->setScale(0.56f);
-        m_status->setColor({ 165, 190, 218 });
+        m_status->setColor(isGDBlue() ? ccColor3B{ 235, 245, 255 } : ccColor3B{ 165, 190, 218 });
         m_status->setAnchorPoint({ 0.f, 0.5f });
         m_status->setPosition({ 25.f, size.height - 118.f });
         m_status->setWidth(310.f);
@@ -237,7 +251,7 @@ protected:
 
         m_pageLabel = CCLabelBMFont::create("", "chatFont.fnt");
         m_pageLabel->setScale(0.48f);
-        m_pageLabel->setColor({ 182, 198, 220 });
+        m_pageLabel->setColor(isGDBlue() ? ccColor3B{ 235, 245, 255 } : ccColor3B{ 182, 198, 220 });
         m_pageLabel->setPosition({ size.width / 2.f + 43.f, 31.f });
         m_mainLayer->addChild(m_pageLabel);
 
@@ -259,7 +273,7 @@ protected:
         button->setTag(static_cast<int>(source));
         button->setPosition({ x, 0.f });
         m_filterButtons[static_cast<size_t>(source)] = button;
-        auto accent = CCLayerColor::create(ccc4(230, 170, 95, 255));
+        auto accent = CCLayerColor::create(isGDBlue() ? ccc4(137, 237, 239, 255) : ccc4(230, 170, 95, 255));
         accent->setContentSize({ 78.f, 2.f });
         accent->setPosition({ 0.f, 0.f });
         button->addChild(accent, 1);
@@ -504,12 +518,14 @@ protected:
         constexpr float rowStep = 31.f;
         for (size_t slot = 0; begin + slot < end; ++slot) {
             auto const& entry = m_entries[m_visibleEntries[begin + slot]];
-            auto row = CCLayerColor::create(slot % 2 ? ccc4(22, 37, 55, 250) : ccc4(28, 44, 63, 250));
+            auto rowColor = isGDBlue() ? (slot % 2 ? ccc4(27, 83, 143, 250) : ccc4(33, 96, 156, 250))
+                : (slot % 2 ? ccc4(22, 37, 55, 250) : ccc4(28, 44, 63, 250));
+            auto row = CCLayerColor::create(rowColor);
             row->setContentSize({ 390.f, 29.f });
             row->setPosition({ 25.f, rowTop - static_cast<float>(slot) * rowStep });
             row->setID("leaderboard-level-row"_spr);
             m_rows->addChild(row);
-            auto rail = CCLayerColor::create(ccc4(181, 127, 78, 255));
+            auto rail = CCLayerColor::create(isGDBlue() ? ccc4(142, 209, 239, 255) : ccc4(181, 127, 78, 255));
             rail->setContentSize({ 2.f, 29.f });
             row->addChild(rail);
 
@@ -562,7 +578,8 @@ protected:
 
             auto badge = CCLabelBMFont::create(sourceMarks(entry).c_str(), "chatFont.fnt");
             badge->setScale(.34f);
-            badge->setColor({ 132, 198, 210 });
+            badge->setColor(isGDBlue() ? ccColor3B{ 185, 232, 250 } : ccColor3B{ 132, 198, 210 });
+            badge->setVisible(Mod::get()->getSettingValue<bool>("show-source-marks"));
             badge->setAnchorPoint({ 0.f, .5f });
             badge->setPosition({ 217.f, 14.5f });
             row->addChild(badge);
@@ -604,8 +621,11 @@ public:
             // The popup's natural size is larger than a mobile GD viewport.
             // Fit it to the visible area instead of cropping its title/close button.
             auto visible = CCDirector::sharedDirector()->getWinSize();
-            ret->setScale(std::min({ 1.f, (visible.width - 16.f) / 440.f,
+            // Scale the foreground ONLY; scaling Popup itself also shrinks
+            // its built-in black scrim, leaving uncovered game at the edges.
+            ret->m_mainLayer->setScale(std::min({ 1.f, (visible.width - 16.f) / 440.f,
                 (visible.height - 16.f) / 370.f }));
+            ret->setOpacity(Mod::get()->getSettingValue<bool>("dim-background") ? 155 : 0);
             ret->autorelease();
             return ret;
         }
@@ -615,6 +635,8 @@ public:
 
     void onChooseFilter(CCObject* sender) {
         m_filter = static_cast<Source>(sender->getTag());
+        if (Mod::get()->getSettingValue<bool>("remember-tab"))
+            Mod::get()->setSavedValue("last-tab", static_cast<int>(m_filter));
         m_page = 0;
         updateFilterStyle();
         if (!m_hasLoaded) return;
