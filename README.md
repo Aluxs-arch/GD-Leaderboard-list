@@ -6,11 +6,11 @@ A polished in-game Geometry Dash leaderboard companion for Geode, credited to **
 
 ## Features
 
-- A restrained midnight/copper cover from `resources/leaderboard-bg.png`, a custom Extreme Demon emblem with optional soft glow, consistent flat controls, and a mobile-fitted popup.
+- A Geometry Dash-inspired beveled blue panel from `resources/leaderboard-bg.png`, an optional midnight variant, and a custom Extreme Demon emblem with optional soft glow. The black dimmer covers only the game *behind* the panel; the foreground remains blue.
 - One **ALL** index merges the public level lists from AREDL, Global Demonlist Classic, and Pointercrate by Geometry Dash in-game ID.
 - Source tabs for **ALL / AREDL / CLASSIC / POINTER** plus source marks on each matching level.
 - **6 detailed levels per page**, dynamic page count, and previous/next navigation. **INFO** shows each source rank, **ID** copies the GD ID, and **OPEN** asks Geometry Dash for the level by its ID and opens its native level page directly (no copy/paste or list-site redirect). If GD servers are unavailable, an error is shown.
-- Refresh/error states and English/Bahasa Indonesia UI. The floating shortcut has four smaller size presets (very small, small, medium, large; small by default), an optional caption (off by default), and drag-to-move positioning saved across sessions; it can also be hidden. Drag on the icon to move it, tap it to open the list. Turn off thumbnails or video previews to save bandwidth; turn on Reduce Motion to disable the subtle emblem glow and button pulse.
+- Refresh/error states and English/Bahasa Indonesia UI. The floating shortcut has four smaller size presets (very small, small, medium, large; small by default), an optional caption (off by default), and drag-to-move positioning saved across sessions; it can also be hidden. Drag on the icon to move it, tap it to open the list. Turn off thumbnails or video previews to save bandwidth; turn on Reduce Motion to disable the subtle emblem glow and button pulse. Choose the panel theme, toggle the behind-panel dimmer and source badges, or remember the last selected tab in settings. Reopen the popup after changing theme settings.
 
 ## Live data
 
@@ -22,7 +22,7 @@ All lists load asynchronously and merge by the Geometry Dash level ID. Each row 
 
 ## Build and release
 
-The `Build Geode release` GitHub Actions workflow builds **Windows 64-bit, macOS, iOS, Android 32-bit, and Android 64-bit** binaries for **Geometry Dash 2.2081** using Geode SDK 5.11.2. It verifies the combined `.geode` archive and uploads it as the **Leaderboard-List-v2.0.0** artifact (retained for 30 days). Open a successful [workflow run](https://github.com/Aluxs-arch/GD-Leaderboard-list/actions/workflows/geode-release.yml) and download that artifact to obtain the `.geode` file. Pushing a `v*` tag also publishes a GitHub release with the package attached; only tag a tested commit intended for release. The mod version is **v2.0.0** (different from the Geometry Dash version).
+The `Build Geode release` GitHub Actions workflow builds **Windows 64-bit, macOS, iOS, Android 32-bit, and Android 64-bit** binaries for **Geometry Dash 2.2081** using Geode SDK 5.11.2. It verifies the combined `.geode` archive and uploads it as the **Leaderboard-List-v2.1.0** artifact (retained for 30 days). Open a successful [workflow run](https://github.com/Aluxs-arch/GD-Leaderboard-list/actions/workflows/geode-release.yml) and download that artifact to obtain the `.geode` file. Pushing a `v*` tag also publishes a GitHub release with the package attached; only tag a tested commit intended for release. The mod version is **v2.1.0** (different from the Geometry Dash version).
 
 For a local build, install Geode SDK and CLI, then run:
 

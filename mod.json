@@ -8,7 +8,7 @@
   },
   "id": "aluxs.leaderboardlist",
   "name": "Leaderboard List",
-  "version": "v2.0.0",
+  "version": "v2.1.0",
   "developer": "Aluxs",
   "description": "Browse a unified, paginated live index of AREDL, Global Demonlist Classic, and Pointercrate in-game. / Jelajahi daftar live terpadu AREDL, Global Demonlist Classic, dan Pointercrate di dalam game.",
   "repository": "https://github.com/Aluxs-arch/GD-Leaderboard-list",
@@ -60,6 +60,28 @@
       "name": "Reduce motion / Kurangi animasi",
       "description": "Disable the emblem glow and floating-button pulse. / Matikan cahaya logo dan animasi tombol.",
       "type": "bool", "default": false
+    },
+    "panel-theme": {
+      "name": "Panel style / Gaya panel",
+      "description": "GD blue or the previous midnight design. Reopen the list to apply. / Biru GD atau desain gelap sebelumnya. Buka ulang daftar untuk menerapkan.",
+      "type": "string", "default": "gd-blue",
+      "one-of": ["gd-blue", "midnight"],
+      "one-of-labels": ["Geometry Dash blue / Biru GD", "Midnight / Gelap"]
+    },
+    "dim-background": {
+      "name": "Darken behind popup / Gelapkan belakang",
+      "description": "Darken only the game behind the panel, not the panel itself. / Gelapkan hanya game di belakang panel.",
+      "type": "bool", "default": true
+    },
+    "remember-tab": {
+      "name": "Remember last tab / Ingat tab terakhir",
+      "description": "Reopen the list on the last selected source tab. / Buka daftar pada tab sumber yang terakhir dipilih.",
+      "type": "bool", "default": true
+    },
+    "show-source-marks": {
+      "name": "Show source marks / Tampilkan penanda sumber",
+      "description": "Display A, C, P source marks on each level row. / Tampilkan penanda A, C, P di setiap level.",
+      "type": "bool", "default": true
     }
   }
 }

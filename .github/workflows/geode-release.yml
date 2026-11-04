@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 env:
-  BUILD_ARTIFACT_NAME: Leaderboard-List-v2.0.0
+  BUILD_ARTIFACT_NAME: Leaderboard-List-v2.1.0
 
 jobs:
   build:
