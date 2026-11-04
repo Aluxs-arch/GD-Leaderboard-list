@@ -125,84 +125,6 @@ namespace {
 
 }
 
-// Drag from any unused area of the panel. Interactive CCMenu controls keep
-// their normal (-128) touch priority; this background hit surface uses -127.
-class PopupDragMenu : public CCMenu {
-    CCNode* m_panel = nullptr; // owned by the same popup; menu is its child
-    CCPoint m_touchStart = {};
-    CCPoint m_startPosition = {};
-    bool m_dragging = false;
-
-    CCPoint clampToScreen(CCPoint point) const {
-        auto screen = CCDirector::sharedDirector()->getWinSize();
-        auto scaled = m_panel->getContentSize() * m_panel->getScale();
-        float x = scaled.width / 2.f + 6.f;
-        float y = scaled.height / 2.f + 6.f;
-        return { std::clamp(point.x, x, std::max(x, screen.width - x)),
-            std::clamp(point.y, y, std::max(y, screen.height - y)) };
-    }
-
-public:
-    static PopupDragMenu* create(CCNode* panel) {
-        auto menu = new PopupDragMenu();
-        if (menu && menu->init()) {
-            menu->m_panel = panel;
-            menu->setHandlerPriority(-127);
-            menu->setPosition({ 0.f, 0.f });
-            auto hitArea = CCLayerColor::create(ccc4(0, 0, 0, 0));
-            hitArea->setContentSize({ 426.f, 354.f });
-            auto hit = CCMenuItemSpriteExtra::create(hitArea, menu, menu_selector(PopupDragMenu::onTap));
-            hit->setPosition({ 220.f, 185.f });
-            menu->addChild(hit);
-            menu->autorelease();
-            return menu;
-        }
-        delete menu;
-        return nullptr;
-    }
-
-    void onTap(CCObject*) {} // Blank-space taps have no action.
-
-    void moveTo(CCPoint point, bool save) {
-        if (!m_panel) return;
-        m_panel->setPosition(clampToScreen(point));
-        if (save && Mod::get()->getSettingValue<bool>("remember-popup-position")) {
-            auto screen = CCDirector::sharedDirector()->getWinSize();
-            Mod::get()->setSavedValue("popup-x", m_panel->getPositionX() / screen.width);
-            Mod::get()->setSavedValue("popup-y", m_panel->getPositionY() / screen.height);
-        }
-    }
-
-    bool ccTouchBegan(CCTouch* touch, CCEvent* event) override {
-        if (!CCMenu::ccTouchBegan(touch, event)) return false;
-        m_touchStart = touch->getLocation();
-        m_startPosition = m_panel->getPosition();
-        m_dragging = false;
-        return true;
-    }
-
-    void ccTouchMoved(CCTouch* touch, CCEvent* event) override {
-        auto delta = touch->getLocation() - m_touchStart;
-        if (!m_dragging && delta.x * delta.x + delta.y * delta.y > 36.f) {
-            m_dragging = true;
-            CCMenu::ccTouchCancelled(touch, event);
-        }
-        if (m_dragging) moveTo(m_startPosition + delta, false);
-        else CCMenu::ccTouchMoved(touch, event);
-    }
-
-    void ccTouchEnded(CCTouch* touch, CCEvent* event) override {
-        if (!m_dragging) CCMenu::ccTouchEnded(touch, event);
-        else moveTo(m_panel->getPosition(), true);
-        m_dragging = false;
-    }
-
-    void ccTouchCancelled(CCTouch* touch, CCEvent* event) override {
-        if (!m_dragging) CCMenu::ccTouchCancelled(touch, event);
-        m_dragging = false;
-    }
-};
-
 class LeaderboardPopup : public geode::Popup, public LevelManagerDelegate {
 protected:
     Source m_filter = Source::All;
@@ -210,7 +132,6 @@ protected:
     CCLabelBMFont* m_pageLabel = nullptr;
     CCNode* m_rows = nullptr;
     CCMenu* m_pageMenu = nullptr;
-    PopupDragMenu* m_dragSurface = nullptr;
     CCMenu* m_filterMenu = nullptr;
     std::array<CCMenuItemSpriteExtra*, 4> m_filterButtons{};
     std::array<CCLayerColor*, 4> m_filterAccents{};
@@ -230,6 +151,7 @@ protected:
     std::string m_openSearchKey;
 
     bool setup() {
+        log::info("Leaderboard popup: setting up UI");
         setTitle(tr("LEADERBOARD LIST", "DAFTAR LEADERBOARD"), "goldFont.fnt", 0.72f);
         auto size = m_mainLayer->getContentSize();
         if (Mod::get()->getSettingValue<bool>("remember-tab")) {
@@ -336,23 +258,13 @@ protected:
         m_pageLabel->setPosition({ size.width / 2.f + 43.f, 31.f });
         m_mainLayer->addChild(m_pageLabel);
 
-        auto footer = CCLabelBMFont::create(tr("DRAG EMPTY PANEL TO MOVE  ·  ALUXS", "GESER AREA KOSONG  ·  ALUXS").c_str(), "chatFont.fnt");
+        auto footer = CCLabelBMFont::create("ALUXS  /  EXTREME DEMON LIST", "chatFont.fnt");
         footer->limitLabelWidth(365.f, .35f, .26f);
         footer->setColor({ 109, 128, 154 });
         footer->setPosition({ size.width / 2.f, 11.f });
         m_mainLayer->addChild(footer);
 
-        // This sits *behind* every interactive menu. They get the touch first.
-        m_dragSurface = PopupDragMenu::create(m_mainLayer);
-        if (m_dragSurface) m_mainLayer->addChild(m_dragSurface, -1);
-        auto resetMenu = CCMenu::create();
-        resetMenu->setPosition({ 72.f, 31.f });
-        resetMenu->addChild(CCMenuItemSpriteExtra::create(
-            actionSurface(tr("CENTER", "TENGAH").c_str(), 74.f, 21.f),
-            this, menu_selector(LeaderboardPopup::onCenterPanel)
-        ));
-        m_mainLayer->addChild(resetMenu);
-
+        log::info("Leaderboard popup: UI ready, requesting lists");
         refreshLists();
         return true;
     }
@@ -720,6 +632,7 @@ protected:
 public:
     static LeaderboardPopup* create() {
         auto ret = new LeaderboardPopup();
+        log::info("Leaderboard popup: create requested");
         if (ret->init(440.f, 370.f) && ret->setup()) {
             // The popup's natural size is larger than a mobile GD viewport.
             // Fit it to the visible area instead of cropping its title/close button.
@@ -731,13 +644,8 @@ public:
             auto fit = std::min({ 1.f, (visible.width - 24.f) / 440.f,
                 (visible.height - 24.f) / 370.f });
             ret->m_mainLayer->setScale(fit * sizeFactor);
-            auto x = .5f, y = .5f;
-            if (Mod::get()->getSettingValue<bool>("remember-popup-position")) {
-                x = std::clamp(Mod::get()->getSavedValue<float>("popup-x", .5f), 0.f, 1.f);
-                y = std::clamp(Mod::get()->getSavedValue<float>("popup-y", .5f), 0.f, 1.f);
-            }
-            if (ret->m_dragSurface)
-                ret->m_dragSurface->moveTo({ visible.width * x, visible.height * y }, false);
+            // Keep the panel centered: v2.2's experimental full-panel touch
+            // delegate could crash when the floating shortcut opened it.
             ret->setOpacity(Mod::get()->getSettingValue<bool>("dim-background") ? 155 : 0);
             ret->autorelease();
             return ret;
@@ -762,11 +670,6 @@ public:
     }
 
     void onRefresh(CCObject*) { refreshLists(); }
-
-    void onCenterPanel(CCObject*) {
-        auto visible = CCDirector::sharedDirector()->getWinSize();
-        if (m_dragSurface) m_dragSurface->moveTo({ visible.width / 2.f, visible.height / 2.f }, true);
-    }
 
     void onPreviousPage(CCObject*) {
         if (!m_page) return;
@@ -980,6 +883,8 @@ class $modify(LeaderboardMenuLayer, MenuLayer) {
     }
 
     void onLeaderboard(CCObject*) {
+        log::info("Leaderboard shortcut tapped");
         if (auto popup = LeaderboardPopup::create()) popup->show();
+        else log::error("Leaderboard popup creation failed");
     }
 };
