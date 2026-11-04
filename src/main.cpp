@@ -631,7 +631,15 @@ protected:
             rank->setPosition({ 5.f, 14.5f });
             row->addChild(rank);
 
-            if (Mod::get()->getSettingValue<bool>("show-thumbnails")) {
+            bool showThumbnails = Mod::get()->getSettingValue<bool>("show-thumbnails");
+            if (showThumbnails) {
+                // A thin permanent frame remains visible when an async video
+                // cover replaces the illustrated fallback inside the holder.
+                auto frame = CCLayerColor::create(isGDBlue() ? ccc4(161, 225, 248, 255)
+                    : ccc4(198, 154, 112, 255));
+                frame->setContentSize({ 46.f, 28.f });
+                frame->setPosition({ 30.f, .5f });
+                row->addChild(frame);
                 auto holder = CCNode::create();
                 holder->setContentSize({ 44.f, 26.f });
                 holder->setPosition({ 31.f, 1.5f });
@@ -667,8 +675,8 @@ protected:
             auto name = CCLabelBMFont::create(entry.name.empty() ? "Unknown" : entry.name.c_str(), "chatFont.fnt");
             name->setScale(.43f);
             name->setAnchorPoint({ 0.f, .5f });
-            name->setPosition({ 80.f, 14.5f });
-            name->limitLabelWidth(128.f, .43f, .30f);
+            name->setPosition({ showThumbnails ? 80.f : 33.f, 14.5f });
+            name->limitLabelWidth(showThumbnails ? 128.f : 174.f, .43f, .30f);
             row->addChild(name);
 
             auto badge = CCLabelBMFont::create(sourceMarks(entry).c_str(), "chatFont.fnt");

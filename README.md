@@ -18,7 +18,7 @@ A polished in-game Geometry Dash leaderboard companion for Geode, credited to **
 - **Global Demonlist Classic** — `https://api.demonlist.org/level/classic/list`
 - **Pointercrate** — `https://pointercrate.com/api/v2/demons/listed/` (retrieved in 100-item API pages)
 
-All lists load asynchronously and merge by the Geometry Dash level ID. Each row has a bundled illustrated thumbnail; if a list record includes a valid YouTube video link, the currently visible rows can show that video’s cover instead. Video covers are **not guaranteed to be in-game screenshots**. Only validated YouTube IDs are requested, previews are capped and cached per popup, and there is a setting to disable external thumbnail requests. Records without a usable in-game ID are skipped so the copy action never mistakes a list-internal ID for a GD ID. Internet access is required; if one API is down, the other source tabs remain usable.
+All lists load asynchronously and merge by the Geometry Dash level ID. Each row has a framed, bundled illustrated thumbnail; if a list record includes a valid YouTube video link, the currently visible rows can show that video’s cover instead. Turning thumbnails off gives level names more room. Video covers are **not guaranteed to be in-game screenshots**. Only validated YouTube IDs are requested, previews are capped and cached per popup, and there is a setting to disable external thumbnail requests. Records without a usable in-game ID are skipped so the copy action never mistakes a list-internal ID for a GD ID. Internet access is required; if one API is down, the other source tabs remain usable.
 
 ## Build and release
 
