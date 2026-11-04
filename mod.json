@@ -8,7 +8,7 @@
   },
   "id": "aluxs.leaderboardlist",
   "name": "Leaderboard List",
-  "version": "v2.2.0",
+  "version": "v2.2.1",
   "developer": "Aluxs",
   "description": "Browse a unified, paginated live index of AREDL, Global Demonlist Classic, and Pointercrate in-game. / Jelajahi daftar live terpadu AREDL, Global Demonlist Classic, dan Pointercrate di dalam game.",
   "repository": "https://github.com/Aluxs-arch/GD-Leaderboard-list",
@@ -89,11 +89,6 @@
       "type": "string", "default": "compact",
       "one-of": ["compact", "normal", "large"],
       "one-of-labels": ["Compact / Ringkas", "Normal", "Large / Besar"]
-    },
-    "remember-popup-position": {
-      "name": "Remember panel position / Ingat posisi panel",
-      "description": "Keep the dragged panel position between sessions. CENTER restores it. / Simpan posisi panel yang digeser. TENGAH mengembalikannya.",
-      "type": "bool", "default": true
     }
   }
 }
