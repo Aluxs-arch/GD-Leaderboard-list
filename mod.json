@@ -8,9 +8,9 @@
   },
   "id": "aluxs.leaderboardlist",
   "name": "Leaderboard List",
-  "version": "v2.2.1",
+  "version": "v2.3.0",
   "developer": "Aluxs",
-  "description": "Browse a unified, paginated live index of AREDL, Global Demonlist Classic, and Pointercrate in-game. / Jelajahi daftar live terpadu AREDL, Global Demonlist Classic, dan Pointercrate di dalam game.",
+  "description": "A compact in-game index of AREDL, Global Demonlist Classic, and Pointercrate. / Indeks ringkas AREDL, Global Demonlist Classic, dan Pointercrate di dalam game.",
   "repository": "https://github.com/Aluxs-arch/GD-Leaderboard-list",
   "tags": ["interface", "utility"],
   "resources": {
@@ -20,75 +20,241 @@
   "settings": {
     "language": {
       "name": "Language / Bahasa",
-      "description": "Choose the interface language. / Pilih bahasa antarmuka.",
+      "description": "Interface language. / Bahasa antarmuka.",
       "type": "string",
       "default": "en",
       "one-of": ["en", "id"],
       "one-of-labels": ["English", "Bahasa Indonesia"]
     },
+
+    "appearance-title": {
+      "type": "title",
+      "name": "Appearance / Tampilan"
+    },
+    "panel-theme": {
+      "name": "Panel theme / Tema panel",
+      "description": "Geometry Dash blue or midnight. Reopen the panel to apply. / Biru GD atau gelap. Buka ulang panel untuk menerapkan.",
+      "type": "string",
+      "default": "gd-blue",
+      "one-of": ["gd-blue", "midnight"],
+      "one-of-labels": ["GD blue / Biru GD", "Midnight / Gelap"]
+    },
+    "popup-size": {
+      "name": "Panel size / Ukuran panel",
+      "description": "Overall panel scale. Compact is the default and fits small screens. Reopen the panel to apply. / Skala panel keseluruhan. Ringkas adalah bawaan dan muat di layar kecil.",
+      "type": "string",
+      "default": "compact",
+      "one-of": ["compact", "normal", "large"],
+      "one-of-labels": ["Compact / Ringkas", "Normal", "Large / Besar"]
+    },
+    "accent-color": {
+      "name": "Accent color / Warna aksen",
+      "description": "Tint for the tab marker and row rails. / Warna penanda tab dan garis baris.",
+      "type": "rgb",
+      "default": [96, 205, 235]
+    },
+    "compact-rows": {
+      "name": "Compact rows / Baris ringkas",
+      "description": "Shorter rows so the panel stays small. Turn off for larger touch targets. / Baris lebih pendek agar panel tetap kecil. Matikan untuk target sentuh lebih besar.",
+      "type": "bool",
+      "default": true
+    },
+    "row-stripes": {
+      "name": "Striped rows / Baris belang",
+      "description": "Alternate row shading for readability. / Warna baris selang-seling agar mudah dibaca.",
+      "type": "bool",
+      "default": true
+    },
+    "highlight-top3": {
+      "name": "Highlight top 3 / Soroti 3 besar",
+      "description": "Gold, silver and bronze rank colors for the first three places. / Warna emas, perak, dan perunggu untuk peringkat 1-3.",
+      "type": "bool",
+      "default": true
+    },
+    "show-header-logo": {
+      "name": "Header emblem / Emblem judul",
+      "description": "Show the small demon emblem in the panel header. / Tampilkan emblem demon kecil di kepala panel.",
+      "type": "bool",
+      "default": false
+    },
+    "show-footer": {
+      "name": "Footer credit / Kredit footer",
+      "description": "Show the author and version line in the panel footer. / Tampilkan penulis dan versi di kaki panel.",
+      "type": "bool",
+      "default": false
+    },
+    "dim-background": {
+      "name": "Dim the game / Gelapkan game",
+      "description": "Darken only the game behind the panel. / Gelapkan hanya game di belakang panel.",
+      "type": "bool",
+      "default": true
+    },
+    "dim-strength": {
+      "name": "Dim strength / Tingkat gelap",
+      "description": "How dark the game behind the panel becomes (0-255). / Seberapa gelap game di belakang panel (0-255).",
+      "type": "int",
+      "default": 150,
+      "min": 40,
+      "max": 220,
+      "enable-if": "dim-background"
+    },
+    "reduce-motion": {
+      "name": "Reduce motion / Kurangi animasi",
+      "description": "Disable the floating-button pulse. / Matikan animasi tombol pintasan.",
+      "type": "bool",
+      "default": false
+    },
+
+    "content-title": {
+      "type": "title",
+      "name": "List content / Isi daftar"
+    },
+    "rows-per-page": {
+      "name": "Levels per page / Level per halaman",
+      "description": "Rows shown per page; the panel height adapts. Reopen the panel to apply. / Jumlah baris per halaman; tinggi panel menyesuaikan.",
+      "type": "int",
+      "default": 6,
+      "min": 3,
+      "max": 10
+    },
+    "default-tab": {
+      "name": "Default tab / Tab bawaan",
+      "description": "Tab selected when the panel opens (used when Remember last tab is off). / Tab saat panel dibuka (dipakai jika Ingat tab terakhir mati).",
+      "type": "string",
+      "default": "all",
+      "one-of": ["all", "aredl", "classic", "pointer"],
+      "one-of-labels": ["ALL", "AREDL", "CLASSIC", "POINTER"],
+      "enable-if": "!remember-tab"
+    },
+    "remember-tab": {
+      "name": "Remember last tab / Ingat tab terakhir",
+      "description": "Reopen the panel on the last selected source tab. / Buka panel pada tab terakhir yang dipilih.",
+      "type": "bool",
+      "default": true
+    },
+    "sort-descending": {
+      "name": "Reverse order / Urutan terbalik",
+      "description": "Show the lowest ranks first instead of the top demons. / Tampilkan peringkat terendah lebih dulu.",
+      "type": "bool",
+      "default": false
+    },
+    "show-rank": {
+      "name": "Rank numbers / Nomor peringkat",
+      "description": "Show the rank column on each row. / Tampilkan kolom peringkat di tiap baris.",
+      "type": "bool",
+      "default": true
+    },
+    "show-thumbnails": {
+      "name": "Thumbnails / Thumbnail",
+      "description": "Show a small preview tile per level. Off gives names more room. / Tampilkan kotak pratinjau kecil per level. Matikan agar nama lebih leluasa.",
+      "type": "bool",
+      "default": true
+    },
+    "video-previews": {
+      "name": "Video covers / Sampul video",
+      "description": "Replace the placeholder with the YouTube cover when a list provides a valid video link (extra network use). / Ganti placeholder dengan sampul YouTube jika tersedia (memakai data tambahan).",
+      "type": "bool",
+      "default": true,
+      "enable-if": "show-thumbnails"
+    },
+    "show-source-marks": {
+      "name": "Source marks / Penanda sumber",
+      "description": "Show A, C, P marks for AREDL, Classic and Pointercrate. / Tampilkan penanda A, C, P untuk tiap sumber.",
+      "type": "bool",
+      "default": true
+    },
+    "show-level-id": {
+      "name": "Level ID under name / ID di bawah nama",
+      "description": "Show the in-game level ID below each level name. / Tampilkan ID level di bawah nama level.",
+      "type": "bool",
+      "default": false
+    },
+
+    "behavior-title": {
+      "type": "title",
+      "name": "Behavior / Perilaku"
+    },
+    "confirm-open": {
+      "name": "Confirm before opening / Konfirmasi sebelum membuka",
+      "description": "Ask before leaving the menu to open a level. / Tanya dulu sebelum membuka level.",
+      "type": "bool",
+      "default": false
+    },
+    "page-wrap": {
+      "name": "Wrap pages / Halaman berputar",
+      "description": "Next on the last page jumps back to the first, and vice versa. / Halaman terakhir kembali ke awal, dan sebaliknya.",
+      "type": "bool",
+      "default": false
+    },
+    "cache-minutes": {
+      "name": "Cache duration (minutes) / Durasi cache (menit)",
+      "description": "Reuse loaded lists when reopening the panel within this time. 0 always refetches. REFRESH always fetches fresh data. / Pakai ulang data saat membuka panel dalam waktu ini. 0 selalu unduh ulang.",
+      "type": "int",
+      "default": 5,
+      "min": 0,
+      "max": 60
+    },
+    "request-timeout": {
+      "name": "Request timeout (seconds) / Batas waktu (detik)",
+      "description": "How long to wait for each list API before giving up. / Berapa lama menunggu tiap API sebelum menyerah.",
+      "type": "int",
+      "default": 30,
+      "min": 10,
+      "max": 90
+    },
+
+    "shortcut-title": {
+      "type": "title",
+      "name": "Menu shortcut / Pintasan menu"
+    },
     "show-floating-button": {
-      "name": "Floating Extreme button",
-      "description": "Show the leaderboard shortcut on the main menu. / Tampilkan pintasan leaderboard di menu utama.",
+      "name": "Show shortcut / Tampilkan pintasan",
+      "description": "Leaderboard button on the main menu. Drag to move, tap to open. If hidden, re-enter the main menu after enabling. / Tombol leaderboard di menu utama. Geser untuk memindah, ketuk untuk membuka.",
       "type": "bool",
       "default": true
     },
     "floating-size": {
-      "name": "Floating button size / Ukuran tombol",
-      "description": "Choose the shortcut size, then drag it anywhere on the main menu. / Pilih ukuran lalu geser tombol ke posisi yang diinginkan.",
+      "name": "Shortcut size / Ukuran pintasan",
+      "description": "Button diameter on the main menu. / Diameter tombol di menu utama.",
       "type": "string",
       "default": "small",
       "one-of": ["very-small", "small", "medium", "large"],
-      "one-of-labels": ["Very small / Sangat kecil", "Small / Kecil", "Medium / Sedang", "Large / Besar"]
+      "one-of-labels": ["Very small / Sangat kecil", "Small / Kecil", "Medium / Sedang", "Large / Besar"],
+      "enable-if": "show-floating-button"
     },
     "show-floating-label": {
-      "name": "Floating button caption / Label tombol",
-      "description": "Show the EXTREME caption below the shortcut. / Tampilkan tulisan EXTREME di bawah tombol.",
+      "name": "Shortcut caption / Label pintasan",
+      "description": "Show a LIST caption below the button. / Tampilkan label DAFTAR di bawah tombol.",
       "type": "bool",
-      "default": false
+      "default": false,
+      "enable-if": "show-floating-button"
     },
-    "show-thumbnails": {
-      "name": "Level thumbnails / Thumbnail level",
-      "description": "Show a small art tile for each level. / Tampilkan gambar kecil tiap level.",
-      "type": "bool", "default": true
+    "floating-opacity": {
+      "name": "Shortcut opacity / Opasitas pintasan",
+      "description": "Transparency of the main-menu button (percent). / Transparansi tombol menu utama (persen).",
+      "type": "int",
+      "default": 100,
+      "min": 30,
+      "max": 100,
+      "enable-if": "show-floating-button"
     },
-    "video-previews": {
-      "name": "Video thumbnails / Thumbnail video",
-      "description": "Fetch video covers only when list data provides a valid YouTube link (extra network use). / Unduh sampul video jika tersedia (memakai data tambahan).",
-      "type": "bool", "default": true
+    "reset-floating-position": {
+      "name": "Shortcut position / Posisi pintasan",
+      "description": "Return the button to its default spot on the main menu. / Kembalikan tombol ke posisi bawaan di menu utama.",
+      "type": "button",
+      "buttons": {
+        "reset": "Reset position / Atur ulang posisi"
+      },
+      "enable-if": "show-floating-button"
     },
-    "reduce-motion": {
-      "name": "Reduce motion / Kurangi animasi",
-      "description": "Disable the emblem glow and floating-button pulse. / Matikan cahaya logo dan animasi tombol.",
-      "type": "bool", "default": false
+
+    "about-title": {
+      "type": "title",
+      "name": "About / Tentang"
     },
-    "panel-theme": {
-      "name": "Panel style / Gaya panel",
-      "description": "GD blue or the previous midnight design. Reopen the list to apply. / Biru GD atau desain gelap sebelumnya. Buka ulang daftar untuk menerapkan.",
-      "type": "string", "default": "gd-blue",
-      "one-of": ["gd-blue", "midnight"],
-      "one-of-labels": ["Geometry Dash blue / Biru GD", "Midnight / Gelap"]
-    },
-    "dim-background": {
-      "name": "Darken behind popup / Gelapkan belakang",
-      "description": "Darken only the game behind the panel, not the panel itself. / Gelapkan hanya game di belakang panel.",
-      "type": "bool", "default": true
-    },
-    "remember-tab": {
-      "name": "Remember last tab / Ingat tab terakhir",
-      "description": "Reopen the list on the last selected source tab. / Buka daftar pada tab sumber yang terakhir dipilih.",
-      "type": "bool", "default": true
-    },
-    "show-source-marks": {
-      "name": "Show source marks / Tampilkan penanda sumber",
-      "description": "Display A, C, P source marks on each level row. / Tampilkan penanda A, C, P di setiap level.",
-      "type": "bool", "default": true
-    },
-    "popup-size": {
-      "name": "Leaderboard panel size / Ukuran panel",
-      "description": "Compact fits small Android screens. Reopen the leaderboard to apply. / Ringkas cocok untuk layar Android kecil. Buka ulang panel untuk menerapkan.",
-      "type": "string", "default": "compact",
-      "one-of": ["compact", "normal", "large"],
-      "one-of-labels": ["Compact / Ringkas", "Normal", "Large / Besar"]
+    "about-info": {
+      "type": "info",
+      "description": "Leaderboard List v2.3.0 by Aluxs. Data: AREDL, Global Demonlist Classic, Pointercrate. Level names, ranks and marks belong to their respective lists. Internet access is required. / Data milik AREDL, Global Demonlist Classic, dan Pointercrate. Perlu koneksi internet."
     }
   }
 }
